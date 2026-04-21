@@ -19,6 +19,45 @@ const AnalysisModule = (() => {
    * @param {Array} frames - array of { timestamp, landmarks }
    * @returns {Object} analysis result
    */
+  // Key landmarks that MUST be visible for a valid swing analysis
+  const REQUIRED_LANDMARKS = [
+    LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER,
+    LM.LEFT_ELBOW, LM.RIGHT_ELBOW,
+    LM.LEFT_WRIST, LM.RIGHT_WRIST,
+    LM.LEFT_HIP, LM.RIGHT_HIP,
+    LM.LEFT_KNEE, LM.RIGHT_KNEE,
+    LM.LEFT_ANKLE, LM.RIGHT_ANKLE
+  ];
+
+  const MIN_VISIBILITY = 0.5;       // per-landmark threshold
+  const MIN_VALID_RATIO = 0.6;      // at least 60% of frames must have full body
+  const MIN_VALID_FRAMES = 15;      // absolute minimum usable frames
+
+  /**
+   * Check if a single frame has all required landmarks visible.
+   */
+  function frameHasFullBody(landmarks) {
+    for (const idx of REQUIRED_LANDMARKS) {
+      if (!landmarks[idx] || landmarks[idx].visibility < MIN_VISIBILITY) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Count how many required landmarks are visible in a frame.
+   */
+  function countVisibleLandmarks(landmarks) {
+    let count = 0;
+    for (const idx of REQUIRED_LANDMARKS) {
+      if (landmarks[idx] && landmarks[idx].visibility >= MIN_VISIBILITY) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   function analyze(frames) {
     if (!frames || frames.length < 10) {
       return {
@@ -27,11 +66,45 @@ const AnalysisModule = (() => {
       };
     }
 
+    // --- VALIDATION: check that we can actually see a full body ---
+    const validFrames = frames.filter(f => frameHasFullBody(f.landmarks));
+    const validRatio = validFrames.length / frames.length;
+
+    if (validFrames.length < MIN_VALID_FRAMES) {
+      const sampleFrame = frames[Math.floor(frames.length / 2)];
+      const visCount = countVisibleLandmarks(sampleFrame.landmarks);
+      const totalRequired = REQUIRED_LANDMARKS.length;
+
+      let hint = '';
+      if (visCount <= 4) {
+        hint = 'It looks like only your upper body or face is visible.';
+      } else if (visCount <= 8) {
+        hint = 'Some body parts are cut off from the frame.';
+      } else {
+        hint = 'Landmarks are intermittently dropping out.';
+      }
+
+      return {
+        error: true,
+        message: `Cannot analyze: full body not detected. ${hint} Please step back so your entire body (head to feet) is visible in the camera, then try again. (Detected ${visCount}/${totalRequired} key points)`
+      };
+    }
+
+    if (validRatio < MIN_VALID_RATIO) {
+      return {
+        error: true,
+        message: `Body tracking was too unstable — only ${Math.round(validRatio * 100)}% of frames had a full body visible. Make sure you have good lighting and your full body stays in frame throughout the swing.`
+      };
+    }
+
+    // Use only validated frames for analysis
+    const analyzableFrames = validFrames;
+
     // 1. Extract key metrics per frame
-    const metrics = frames.map((f, i) => extractMetrics(f.landmarks, i, frames));
+    const metrics = analyzableFrames.map((f, i) => extractMetrics(f.landmarks, i, analyzableFrames));
 
     // 2. Detect swing phases
-    const phases = detectPhases(metrics, frames);
+    const phases = detectPhases(metrics, analyzableFrames);
 
     // 3. Score each phase
     const phaseScores = scorePhases(metrics, phases);
@@ -53,8 +126,10 @@ const AnalysisModule = (() => {
       impact,
       issues: issues.problems,
       improvements: issues.suggestions,
-      frameCount: frames.length,
-      duration: (frames[frames.length - 1].timestamp - frames[0].timestamp) / 1000
+      frameCount: analyzableFrames.length,
+      totalFrames: frames.length,
+      validRatio: Math.round(validRatio * 100),
+      duration: (analyzableFrames[analyzableFrames.length - 1].timestamp - analyzableFrames[0].timestamp) / 1000
     };
   }
 

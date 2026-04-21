@@ -19,6 +19,7 @@
   let isRecording = false;
   let animFrameId = null;
   let poseReady = false;
+  let bodyVisible = false;
 
   // ===== Landing → Camera =====
   btnStart.addEventListener('click', async () => {
@@ -44,6 +45,33 @@
       await PoseModule.init(overlayCanvas);
       poseReady = true;
       statusText.textContent = 'Ready — position yourself and press record';
+
+      // Set up body visibility check
+      PoseModule.setOnPose((landmarks) => {
+        const requiredIndices = [11,12,13,14,15,16,23,24,25,26,27,28];
+        const allVisible = requiredIndices.every(i => landmarks[i] && landmarks[i].visibility > 0.5);
+        bodyVisible = allVisible;
+
+        if (allVisible) {
+          bodyGuide.querySelector('.guide-outline').style.borderColor = 'rgba(46, 204, 113, 0.8)';
+          bodyGuide.querySelector('.guide-text').textContent = '✅ Full body detected — ready to record';
+          bodyGuide.querySelector('.guide-text').style.color = 'rgba(46, 204, 113, 0.8)';
+          btnRecord.disabled = false;
+          btnRecord.style.opacity = '1';
+        } else {
+          bodyGuide.querySelector('.guide-outline').style.borderColor = 'rgba(231, 76, 60, 0.7)';
+          bodyGuide.querySelector('.guide-text').textContent = '⚠️ Step back — full body must be visible';
+          bodyGuide.querySelector('.guide-text').style.color = 'rgba(231, 76, 60, 0.8)';
+          if (!isRecording) {
+            btnRecord.disabled = true;
+            btnRecord.style.opacity = '0.4';
+          }
+        }
+      });
+
+      // Start disabled until body is detected
+      btnRecord.disabled = true;
+      btnRecord.style.opacity = '0.4';
 
       // Start pose detection loop
       startPoseLoop();
