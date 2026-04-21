@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Golf Swing Analyzer</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <!-- Landing Screen -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-content">
+      <div class="logo">⛳</div>
+      <h1>Golf Swing Analyzer</h1>
+      <p class="subtitle">AI-powered swing analysis from your phone</p>
+      <button id="btn-start" class="btn btn-primary">Start Analysis</button>
+      <p class="hint">Place your phone facing you so your full body is visible</p>
+    </div>
+  </div>
+
+  <!-- Camera Screen -->
+  <div id="screen-camera" class="screen">
+    <div class="camera-container">
+      <video id="camera-feed" autoplay playsinline muted></video>
+      <canvas id="pose-overlay"></canvas>
+      <div id="body-guide" class="body-guide">
+        <div class="guide-outline"></div>
+        <p class="guide-text">Position yourself inside the outline</p>
+      </div>
+    </div>
+    <div class="camera-controls">
+      <div id="status-bar" class="status-bar">
+        <span id="status-text">Ready</span>
+        <span id="recording-timer" class="hidden">00:00</span>
+      </div>
+      <div class="btn-row">
+        <button id="btn-record" class="btn btn-record">
+          <span class="record-icon"></span>
+          <span class="record-label">Start Recording</span>
+        </button>
+      </div>
+      <button id="btn-back" class="btn btn-secondary btn-small">← Back</button>
+    </div>
+  </div>
+
+  <!-- Analyzing Screen -->
+  <div id="screen-analyzing" class="screen">
+    <div class="analyzing-content">
+      <div class="spinner"></div>
+      <h2>Analyzing Your Swing</h2>
+      <p id="analysis-status">Extracting pose data...</p>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Screen -->
+  <div id="screen-results" class="screen">
+    <div class="results-content">
+      <div class="score-section">
+        <div id="score-circle" class="score-circle">
+          <span id="score-value" class="score-value">--</span>
+          <span class="score-label">/ 100</span>
+        </div>
+        <p id="score-grade" class="score-grade"></p>
+      </div>
+
+      <div class="results-details">
+        <!-- Phase Scores -->
+        <div class="result-card">
+          <h3>Phase Breakdown</h3>
+          <div id="phase-scores" class="phase-scores"></div>
+        </div>
+
+        <!-- Impact Point -->
+        <div class="result-card">
+          <h3>Estimated Impact Point</h3>
+          <div id="impact-diagram" class="impact-diagram">
+            <canvas id="impact-canvas" width="200" height="280"></canvas>
+          </div>
+          <p id="impact-description" class="impact-desc"></p>
+        </div>
+
+        <!-- Key Issues -->
+        <div class="result-card">
+          <h3>Key Issues</h3>
+          <ul id="issues-list" class="issues-list"></ul>
+        </div>
+
+        <!-- Improvements -->
+        <div class="result-card">
+          <h3>How to Improve</h3>
+          <ul id="improvements-list" class="improvements-list"></ul>
+        </div>
+      </div>
+
+      <button id="btn-retry" class="btn btn-primary">Record Another Swing</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+  <script src="js/camera.js"></script>
+  <script src="js/pose.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
