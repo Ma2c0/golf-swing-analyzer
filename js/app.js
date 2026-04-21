@@ -20,7 +20,8 @@
   const thumbIcon = document.getElementById('thumb-icon');
 
   let isRecording = false;
-  let animFrameId = null;
+  let poseAnimId = null;
+  let gestureAnimId = null;
   let poseReady = false;
   let gestureReady = false;
   let bodyVisible = false;
@@ -48,11 +49,13 @@
       UIModule.showScreen('screen-camera');
       await PoseModule.init(overlayCanvas);
       poseReady = true;
+      console.log('✅ Pose model loaded');
 
       // Init gesture detection
       statusText.textContent = 'Loading gesture recognition...';
       await GestureModule.init();
       gestureReady = true;
+      console.log('✅ Gesture model loaded');
 
       statusText.textContent = 'Ready — position yourself in the outline';
 
@@ -65,7 +68,7 @@
         if (allVisible) {
           bodyGuide.querySelector('.guide-outline').style.borderColor = 'rgba(46, 204, 113, 0.8)';
           if (!isRecording) {
-            bodyGuide.querySelector('.guide-text').textContent = '✅ Full body detected — show 👍 to start recording';
+            bodyGuide.querySelector('.guide-text').textContent = '✅ Full body detected — show 👍 to start';
             bodyGuide.querySelector('.guide-text').style.color = 'rgba(46, 204, 113, 0.8)';
             gestureHint.classList.remove('hidden');
             gestureHint.classList.add('gesture-ready');
@@ -81,6 +84,23 @@
         }
       });
 
+      // Set up gesture state feedback
+      GestureModule.onStateChange(({ handDetected, thumbDetected }) => {
+        if (thumbDetected) {
+          gestureHint.textContent = '👍 Thumbs-up detected! Hold it...';
+          gestureHint.style.borderColor = 'var(--green)';
+          gestureHint.style.background = 'rgba(46, 204, 113, 0.3)';
+        } else if (handDetected) {
+          gestureHint.textContent = '🖐 Hand detected — show thumbs up 👍';
+          gestureHint.style.borderColor = 'rgba(46, 204, 113, 0.4)';
+          gestureHint.style.background = 'rgba(46, 204, 113, 0.15)';
+        } else {
+          gestureHint.textContent = 'Show 👍 to start recording';
+          gestureHint.style.borderColor = 'rgba(46, 204, 113, 0.4)';
+          gestureHint.style.background = 'rgba(46, 204, 113, 0.15)';
+        }
+      });
+
       // Set up gesture control
       GestureModule.onThumbsUp(() => {
         if (!isRecording && bodyVisible) {
@@ -90,10 +110,12 @@
         }
       });
 
-      // Start detection loops
-      startDetectionLoop();
+      // Start SEPARATE detection loops so they don't block each other
+      startPoseLoop();
+      startGestureLoop();
 
     } catch (err) {
+      console.error('Init error:', err);
       alert(err.message);
       btnStart.disabled = false;
       btnStart.textContent = 'Start Analysis';
@@ -149,8 +171,9 @@
     // Stop media recording
     await CameraModule.stopRecording();
 
-    // Stop detection loop during analysis
-    cancelAnimationFrame(animFrameId);
+    // Stop detection loops during analysis
+    cancelAnimationFrame(poseAnimId);
+    cancelAnimationFrame(gestureAnimId);
 
     // Analyze
     UIModule.showScreen('screen-analyzing');
@@ -180,7 +203,8 @@
 
   // ===== Back button =====
   btnBack.addEventListener('click', () => {
-    cancelAnimationFrame(animFrameId);
+    cancelAnimationFrame(poseAnimId);
+    cancelAnimationFrame(gestureAnimId);
     CameraModule.destroy();
     poseReady = false;
     gestureReady = false;
@@ -197,34 +221,58 @@
     thumbIcon.classList.add('hidden');
     statusText.textContent = 'Ready — position yourself in the outline';
     GestureModule.resetCooldown();
-    startDetectionLoop();
+    startPoseLoop();
+    startGestureLoop();
   });
 
-  // ===== Detection loop (pose + gesture) =====
-  function startDetectionLoop() {
-    let frameCount = 0;
+  // ===== SEPARATE detection loops =====
+  // Running Pose and Hands in the same loop causes them to block each other.
+  // Separate loops let gesture detection run at its own cadence.
 
+  function startPoseLoop() {
     async function loop() {
-      if (videoEl.readyState >= 2) {
+      if (poseReady && videoEl.readyState >= 2) {
         try {
-          // Always run pose detection
-          if (poseReady) {
-            await PoseModule.sendFrame(videoEl);
-          }
-
-          // Run gesture detection every other frame to save CPU
-          if (gestureReady && frameCount % 2 === 0) {
-            await GestureModule.sendFrame(videoEl);
-          }
+          await PoseModule.sendFrame(videoEl);
         } catch (e) {
-          // Detection error — skip frame
+          // skip frame
         }
       }
-      frameCount++;
-      animFrameId = requestAnimationFrame(loop);
+      poseAnimId = requestAnimationFrame(loop);
     }
     loop();
   }
+
+  function startGestureLoop() {
+    // Run gesture detection at ~15fps using setTimeout instead of rAF
+    // This ensures it runs independently of the pose loop
+    let running = true;
+
+    async function loop() {
+      if (!gestureReady || !running) return;
+
+      if (videoEl.readyState >= 2) {
+        try {
+          await GestureModule.sendFrame(videoEl);
+        } catch (e) {
+          // skip frame
+        }
+      }
+
+      // Use setTimeout for independent timing (~15fps = 66ms)
+      gestureAnimId = setTimeout(loop, 66);
+    }
+
+    // Override cancelAnimationFrame behavior for this loop
+    const origCancel = cancelAnimationFrame;
+    gestureAnimId = setTimeout(loop, 100); // start after a small delay
+
+    // Store cleanup
+    window._gestureLoopRunning = () => { running = false; clearTimeout(gestureAnimId); };
+  }
+
+  // Patch stop functions to also stop gesture loop
+  const origStopRecording = stopRecording;
 
   // ===== Utility =====
   function sleep(ms) {

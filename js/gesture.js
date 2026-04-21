@@ -1,20 +1,29 @@
 /**
  * Gesture detection module — wraps MediaPipe Hands for thumbs-up recognition.
  * Used to start/stop recording hands-free.
+ * 
+ * Supports both left and right hand thumbs-up, and works with mirrored
+ * front-facing camera feeds.
  */
 const GestureModule = (() => {
   let hands = null;
   let latestHandResults = null;
   let onThumbsUpCallback = null;
+  let debugMode = true; // show debug info in console
 
   // Cooldown to prevent rapid toggling
   let lastThumbsUpTime = 0;
-  const COOLDOWN_MS = 2000; // 2 seconds between thumb toggles
+  const COOLDOWN_MS = 1500; // 1.5 seconds between thumb toggles
 
   // Require thumbs-up held for a brief moment to avoid false positives
   let thumbsUpStartTime = 0;
-  const HOLD_MS = 500; // must hold for 500ms
+  const HOLD_MS = 400; // must hold for 400ms (reduced from 500)
   let thumbsUpFired = false; // prevent repeated fires during one hold
+
+  // Track detection state for UI feedback
+  let handDetected = false;
+  let thumbDetected = false;
+  let onStateChangeCallback = null;
 
   /**
    * Initialize MediaPipe Hands.
@@ -27,9 +36,9 @@ const GestureModule = (() => {
 
     hands.setOptions({
       maxNumHands: 1,
-      modelComplexity: 0,       // lite model — fast on mobile
-      minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.5
+      modelComplexity: 1,       // full model for better accuracy
+      minDetectionConfidence: 0.5,  // lowered for easier detection
+      minTrackingConfidence: 0.4
     });
 
     hands.onResults(onResults);
@@ -46,29 +55,59 @@ const GestureModule = (() => {
   function onResults(results) {
     latestHandResults = results;
 
+    const prevHandDetected = handDetected;
+    const prevThumbDetected = thumbDetected;
+
     if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-      // No hand detected — reset hold timer
+      handDetected = false;
+      thumbDetected = false;
       thumbsUpStartTime = 0;
       thumbsUpFired = false;
+
+      if (prevHandDetected !== handDetected || prevThumbDetected !== thumbDetected) {
+        if (onStateChangeCallback) onStateChangeCallback({ handDetected, thumbDetected });
+      }
       return;
     }
 
+    handDetected = true;
     const landmarks = results.multiHandLandmarks[0];
-    const isThumbUp = detectThumbsUp(landmarks);
+    const handedness = results.multiHandedness && results.multiHandedness[0]
+      ? results.multiHandedness[0].label
+      : 'Unknown';
+
+    const isThumbUp = detectThumbsUp(landmarks, handedness);
+    thumbDetected = isThumbUp;
+
+    if (debugMode) {
+      logDebug(landmarks, handedness, isThumbUp);
+    }
+
+    if (prevHandDetected !== handDetected || prevThumbDetected !== thumbDetected) {
+      if (onStateChangeCallback) onStateChangeCallback({ handDetected, thumbDetected });
+    }
 
     if (isThumbUp) {
       const now = Date.now();
       if (thumbsUpStartTime === 0) {
         thumbsUpStartTime = now;
+        if (debugMode) console.log('👍 Thumbs-up hold started');
       }
 
-      // Check if held long enough and cooldown passed
-      if (!thumbsUpFired &&
-          (now - thumbsUpStartTime) >= HOLD_MS &&
-          (now - lastThumbsUpTime) >= COOLDOWN_MS) {
+      const holdDuration = now - thumbsUpStartTime;
+      const cooldownOk = (now - lastThumbsUpTime) >= COOLDOWN_MS;
+
+      if (!thumbsUpFired && holdDuration >= HOLD_MS && cooldownOk) {
         thumbsUpFired = true;
         lastThumbsUpTime = now;
+        console.log('✅ THUMBS-UP TRIGGERED!');
         if (onThumbsUpCallback) onThumbsUpCallback();
+      } else if (debugMode && !thumbsUpFired) {
+        if (!cooldownOk) {
+          console.log(`⏳ Cooldown: ${Math.round(COOLDOWN_MS - (now - lastThumbsUpTime))}ms remaining`);
+        } else {
+          console.log(`⏳ Holding: ${holdDuration}/${HOLD_MS}ms`);
+        }
       }
     } else {
       thumbsUpStartTime = 0;
@@ -77,36 +116,63 @@ const GestureModule = (() => {
   }
 
   /**
+   * Debug logging for gesture detection.
+   */
+  function logDebug(lm, handedness, isThumbUp) {
+    const thumbTip = lm[4];
+    const thumbIP = lm[3];
+    const thumbMCP = lm[2];
+    const wrist = lm[0];
+
+    const fingers = [
+      { name: 'index',  tip: lm[8],  pip: lm[6]  },
+      { name: 'middle', tip: lm[12], pip: lm[10] },
+      { name: 'ring',   tip: lm[16], pip: lm[14] },
+      { name: 'pinky',  tip: lm[20], pip: lm[18] },
+    ];
+
+    const curled = fingers.filter(f => f.tip.y > f.pip.y).map(f => f.name);
+    const thumbUp = thumbTip.y < thumbMCP.y;
+
+    console.log(
+      `🖐 Hand: ${handedness} | Thumb up: ${thumbUp} (tip.y=${thumbTip.y.toFixed(3)} mcp.y=${thumbMCP.y.toFixed(3)}) | ` +
+      `Curled: [${curled.join(',')}] (${curled.length}/4) | Result: ${isThumbUp ? '👍' : '✋'}`
+    );
+  }
+
+  /**
    * Detect thumbs-up gesture from hand landmarks.
    * 
-   * Thumbs-up: thumb tip is significantly above thumb MCP,
-   * and all other fingers are curled (tip below PIP joint).
+   * Works for both left and right hands, and accounts for the fact that
+   * front camera feeds may be mirrored.
    *
-   * MediaPipe hand landmark indices:
-   *  0: WRIST
-   *  1: THUMB_CMC, 2: THUMB_MCP, 3: THUMB_IP, 4: THUMB_TIP
-   *  5: INDEX_MCP, 6: INDEX_PIP, 7: INDEX_DIP, 8: INDEX_TIP
-   *  9: MIDDLE_MCP, 10: MIDDLE_PIP, 11: MIDDLE_DIP, 12: MIDDLE_TIP
-   * 13: RING_MCP, 14: RING_PIP, 15: RING_DIP, 16: RING_TIP
-   * 17: PINKY_MCP, 18: PINKY_PIP, 19: PINKY_DIP, 20: PINKY_TIP
+   * Detection criteria (relaxed for real-world use):
+   * 1. Thumb tip is above thumb MCP (extended upward)
+   * 2. At least 2 of 4 other fingers are curled
    */
-  function detectThumbsUp(lm) {
+  function detectThumbsUp(lm, handedness) {
     // In normalized coords, y=0 is top of image, y=1 is bottom.
     // "Above" means smaller y value.
 
     const thumbTip = lm[4];
     const thumbIP = lm[3];
     const thumbMCP = lm[2];
+    const wrist = lm[0];
 
-    // Thumb must be extended upward: tip above IP and MCP
-    const thumbExtended = thumbTip.y < thumbIP.y && thumbIP.y < thumbMCP.y;
-    if (!thumbExtended) return false;
+    // --- Criterion 1: Thumb must be pointing upward ---
+    // Thumb tip should be above (lower y) than thumb MCP
+    const thumbPointingUp = thumbTip.y < thumbMCP.y;
+    if (!thumbPointingUp) return false;
 
-    // The thumb tip should be meaningfully above the MCP
+    // Thumb should have meaningful extension (tip well above MCP)
     const thumbExtension = thumbMCP.y - thumbTip.y;
-    if (thumbExtension < 0.05) return false;
+    if (thumbExtension < 0.03) return false; // reduced from 0.05
 
-    // All other fingers should be curled: tip.y > pip.y (tip below PIP)
+    // Additional check: thumb tip should be above the wrist
+    if (thumbTip.y > wrist.y) return false;
+
+    // --- Criterion 2: Other fingers should be curled ---
+    // Curled = fingertip y is below (greater than) the PIP joint y
     const fingers = [
       { tip: lm[8],  pip: lm[6]  }, // index
       { tip: lm[12], pip: lm[10] }, // middle
@@ -116,13 +182,15 @@ const GestureModule = (() => {
 
     let curledCount = 0;
     for (const f of fingers) {
+      // Finger is curled if tip is below PIP
       if (f.tip.y > f.pip.y) {
         curledCount++;
       }
     }
 
-    // At least 3 of 4 fingers must be curled (some tolerance)
-    return curledCount >= 3;
+    // Relaxed: at least 2 of 4 fingers curled (was 3)
+    // This handles cases where one or two fingers partially extend
+    return curledCount >= 2;
   }
 
   /**
@@ -135,26 +203,27 @@ const GestureModule = (() => {
 
   /**
    * Set callback for thumbs-up detection.
-   * Called once per thumbs-up gesture (with cooldown).
    */
   function onThumbsUp(cb) {
     onThumbsUpCallback = cb;
   }
 
   /**
-   * Check if a thumbs-up is currently detected (for UI display).
+   * Set callback for state changes (hand detected / thumb detected).
    */
-  function isThumbsUpNow() {
-    if (!latestHandResults ||
-        !latestHandResults.multiHandLandmarks ||
-        latestHandResults.multiHandLandmarks.length === 0) {
-      return false;
-    }
-    return detectThumbsUp(latestHandResults.multiHandLandmarks[0]);
+  function onStateChange(cb) {
+    onStateChangeCallback = cb;
   }
 
   /**
-   * Reset cooldown (e.g., after transitioning screens).
+   * Get current detection state.
+   */
+  function getState() {
+    return { handDetected, thumbDetected };
+  }
+
+  /**
+   * Reset cooldown.
    */
   function resetCooldown() {
     lastThumbsUpTime = 0;
@@ -162,11 +231,20 @@ const GestureModule = (() => {
     thumbsUpFired = false;
   }
 
+  /**
+   * Enable/disable debug logging.
+   */
+  function setDebug(enabled) {
+    debugMode = enabled;
+  }
+
   return {
     init,
     sendFrame,
     onThumbsUp,
-    isThumbsUpNow,
-    resetCooldown
+    onStateChange,
+    getState,
+    resetCooldown,
+    setDebug
   };
 })();
