@@ -1,5 +1,6 @@
 /**
  * Main application — ties everything together.
+ * Recording is controlled by thumbs-up gesture (no need to touch the screen).
  */
 (async function () {
   'use strict';
@@ -15,10 +16,13 @@
   const recordingTimer = document.getElementById('recording-timer');
   const recordLabel = btnRecord.querySelector('.record-label');
   const bodyGuide = document.getElementById('body-guide');
+  const gestureHint = document.getElementById('gesture-hint');
+  const thumbIcon = document.getElementById('thumb-icon');
 
   let isRecording = false;
   let animFrameId = null;
   let poseReady = false;
+  let gestureReady = false;
   let bodyVisible = false;
 
   // ===== Landing → Camera =====
@@ -40,11 +44,17 @@
       });
 
       // Init pose detection
-      statusText.textContent = 'Loading AI model...';
+      statusText.textContent = 'Loading AI models...';
       UIModule.showScreen('screen-camera');
       await PoseModule.init(overlayCanvas);
       poseReady = true;
-      statusText.textContent = 'Ready — position yourself and press record';
+
+      // Init gesture detection
+      statusText.textContent = 'Loading gesture recognition...';
+      await GestureModule.init();
+      gestureReady = true;
+
+      statusText.textContent = 'Ready — position yourself in the outline';
 
       // Set up body visibility check
       PoseModule.setOnPose((landmarks) => {
@@ -54,27 +64,34 @@
 
         if (allVisible) {
           bodyGuide.querySelector('.guide-outline').style.borderColor = 'rgba(46, 204, 113, 0.8)';
-          bodyGuide.querySelector('.guide-text').textContent = '✅ Full body detected — ready to record';
-          bodyGuide.querySelector('.guide-text').style.color = 'rgba(46, 204, 113, 0.8)';
-          btnRecord.disabled = false;
-          btnRecord.style.opacity = '1';
+          if (!isRecording) {
+            bodyGuide.querySelector('.guide-text').textContent = '✅ Full body detected — show 👍 to start recording';
+            bodyGuide.querySelector('.guide-text').style.color = 'rgba(46, 204, 113, 0.8)';
+            gestureHint.classList.remove('hidden');
+            gestureHint.classList.add('gesture-ready');
+          }
         } else {
           bodyGuide.querySelector('.guide-outline').style.borderColor = 'rgba(231, 76, 60, 0.7)';
           bodyGuide.querySelector('.guide-text').textContent = '⚠️ Step back — full body must be visible';
           bodyGuide.querySelector('.guide-text').style.color = 'rgba(231, 76, 60, 0.8)';
           if (!isRecording) {
-            btnRecord.disabled = true;
-            btnRecord.style.opacity = '0.4';
+            gestureHint.classList.add('hidden');
+            gestureHint.classList.remove('gesture-ready');
           }
         }
       });
 
-      // Start disabled until body is detected
-      btnRecord.disabled = true;
-      btnRecord.style.opacity = '0.4';
+      // Set up gesture control
+      GestureModule.onThumbsUp(() => {
+        if (!isRecording && bodyVisible) {
+          startRecording();
+        } else if (isRecording) {
+          stopRecording();
+        }
+      });
 
-      // Start pose detection loop
-      startPoseLoop();
+      // Start detection loops
+      startDetectionLoop();
 
     } catch (err) {
       alert(err.message);
@@ -83,11 +100,11 @@
     }
   });
 
-  // ===== Record toggle =====
+  // ===== Manual record toggle (still available as fallback) =====
   btnRecord.addEventListener('click', () => {
-    if (!isRecording) {
+    if (!isRecording && bodyVisible) {
       startRecording();
-    } else {
+    } else if (isRecording) {
       stopRecording();
     }
   });
@@ -95,10 +112,15 @@
   function startRecording() {
     isRecording = true;
     btnRecord.classList.add('recording');
-    recordLabel.textContent = 'Stop Recording';
+    recordLabel.textContent = 'Stop (or show 👍)';
     recordingTimer.classList.remove('hidden');
     bodyGuide.classList.add('hidden');
-    statusText.textContent = 'Recording...';
+    gestureHint.classList.add('hidden');
+    statusText.textContent = 'Recording... show 👍 to stop';
+
+    // Show thumb icon as recording indicator
+    thumbIcon.classList.remove('hidden');
+    thumbIcon.classList.add('recording-pulse');
 
     // Start collecting pose data
     PoseModule.startCollecting();
@@ -107,6 +129,9 @@
     CameraModule.startRecording((time) => {
       recordingTimer.textContent = time;
     });
+
+    // Reset gesture cooldown so the next thumbs-up can stop recording
+    GestureModule.resetCooldown();
   }
 
   async function stopRecording() {
@@ -115,6 +140,8 @@
     recordLabel.textContent = 'Start Recording';
     recordingTimer.classList.add('hidden');
     statusText.textContent = 'Ready';
+    thumbIcon.classList.add('hidden');
+    thumbIcon.classList.remove('recording-pulse');
 
     // Stop collecting and get frame data
     const frameData = PoseModule.stopCollecting();
@@ -122,7 +149,7 @@
     // Stop media recording
     await CameraModule.stopRecording();
 
-    // Stop pose loop during analysis
+    // Stop detection loop during analysis
     cancelAnimationFrame(animFrameId);
 
     // Analyze
@@ -156,6 +183,7 @@
     cancelAnimationFrame(animFrameId);
     CameraModule.destroy();
     poseReady = false;
+    gestureReady = false;
     UIModule.showScreen('screen-landing');
     btnStart.disabled = false;
     btnStart.textContent = 'Start Analysis';
@@ -165,20 +193,34 @@
   btnRetry.addEventListener('click', async () => {
     UIModule.showScreen('screen-camera');
     bodyGuide.classList.remove('hidden');
-    statusText.textContent = 'Ready — position yourself and press record';
-    startPoseLoop();
+    gestureHint.classList.remove('hidden');
+    thumbIcon.classList.add('hidden');
+    statusText.textContent = 'Ready — position yourself in the outline';
+    GestureModule.resetCooldown();
+    startDetectionLoop();
   });
 
-  // ===== Pose detection loop =====
-  function startPoseLoop() {
+  // ===== Detection loop (pose + gesture) =====
+  function startDetectionLoop() {
+    let frameCount = 0;
+
     async function loop() {
-      if (poseReady && videoEl.readyState >= 2) {
+      if (videoEl.readyState >= 2) {
         try {
-          await PoseModule.sendFrame(videoEl);
+          // Always run pose detection
+          if (poseReady) {
+            await PoseModule.sendFrame(videoEl);
+          }
+
+          // Run gesture detection every other frame to save CPU
+          if (gestureReady && frameCount % 2 === 0) {
+            await GestureModule.sendFrame(videoEl);
+          }
         } catch (e) {
-          // Pose detection error — skip frame
+          // Detection error — skip frame
         }
       }
+      frameCount++;
       animFrameId = requestAnimationFrame(loop);
     }
     loop();
