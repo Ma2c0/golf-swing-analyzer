@@ -438,10 +438,198 @@ const ValidationModule = (() => {
   }
 
   // ══════════════════════════════════════════════
+  // REAL-TIME SWING DETECTOR (during recording)
+  // Watches the live hand trajectory and fires
+  // a callback when a complete swing arc is detected.
+  //
+  // Swing phases tracked:
+  //   SETUP  → hands near waist, relatively still
+  //   BACKSWING → hands rising (handHeight increasing)
+  //   PEAK → hands at highest point, start descending
+  //   DOWNSWING → hands falling fast
+  //   FOLLOW_THROUGH → hands past impact and rising again / slowing
+  //
+  // Auto-stop fires after FOLLOW_THROUGH is confirmed.
+  // ══════════════════════════════════════════════
+
+  const SWING_DETECT = {
+    // Minimum frames before we start looking for a swing (setup period)
+    MIN_SETUP_FRAMES: 10,
+    // How much handHeight must rise from baseline to count as backswing start
+    BACKSWING_RISE_THRESHOLD: 0.02,
+    // How much handHeight must drop from peak to count as downswing
+    DOWNSWING_DROP_THRESHOLD: 0.03,
+    // After impact, how many frames to wait for follow-through before auto-stop
+    FOLLOW_THROUGH_FRAMES: 12,
+    // Minimum total frames for a valid swing (prevent false triggers from jitter)
+    MIN_SWING_FRAMES: 20,
+    // Smoothing window size for hand height (reduces jitter)
+    SMOOTH_WINDOW: 3,
+  };
+
+  let swingState = 'SETUP';   // SETUP | BACKSWING | PEAK | DOWNSWING | FOLLOW_THROUGH | DONE
+  let handHeightHistory = [];  // smoothed handHeight values during recording
+  let rawHandHeights = [];     // raw values for smoothing
+  let baselineHeight = null;   // average hand height during setup
+  let peakHeight = -Infinity;  // highest handHeight seen
+  let peakFrame = 0;
+  let impactFrame = 0;         // frame where hands were lowest after peak
+  let lowestAfterPeak = Infinity;
+  let followThroughCounter = 0;
+  let swingDetectedCallback = null;
+  let swingStartFrame = 0;
+
+  function resetSwingDetector() {
+    swingState = 'SETUP';
+    handHeightHistory = [];
+    rawHandHeights = [];
+    baselineHeight = null;
+    peakHeight = -Infinity;
+    peakFrame = 0;
+    impactFrame = 0;
+    lowestAfterPeak = Infinity;
+    followThroughCounter = 0;
+    swingStartFrame = 0;
+  }
+
+  function onSwingDetected(cb) {
+    swingDetectedCallback = cb;
+  }
+
+  /**
+   * Smooth hand height using a simple moving average.
+   */
+  function getSmoothedHeight(rawValues) {
+    const w = SWING_DETECT.SMOOTH_WINDOW;
+    if (rawValues.length < w) {
+      return rawValues[rawValues.length - 1] || 0;
+    }
+    const window = rawValues.slice(-w);
+    return window.reduce((a, b) => a + b, 0) / w;
+  }
+
+  /**
+   * Feed a landmark frame during recording. Call every pose frame.
+   * Returns { phase: string, autoStop: boolean }
+   */
+  function detectSwingLive(landmarks) {
+    const result = { phase: swingState, autoStop: false };
+
+    if (!landmarks || landmarks.length < 33) return result;
+
+    const lw = landmarks[15]; // left wrist
+    const rw = landmarks[16]; // right wrist
+    const ls = landmarks[11]; // left shoulder
+    const rs = landmarks[12]; // right shoulder
+
+    // Need wrists and shoulders visible
+    if (!lw || !rw || !ls || !rs) return result;
+    if (lw.visibility < 0.3 || rw.visibility < 0.3) return result;
+
+    const handY = (lw.y + rw.y) / 2;
+    const shoulderY = (ls.y + rs.y) / 2;
+    const handHeight = shoulderY - handY; // positive = above shoulders
+
+    rawHandHeights.push(handHeight);
+    const smoothed = getSmoothedHeight(rawHandHeights);
+    handHeightHistory.push(smoothed);
+
+    const frameIdx = handHeightHistory.length;
+
+    // ── State machine ──
+    switch (swingState) {
+      case 'SETUP': {
+        // Collect baseline for the first N frames
+        if (frameIdx <= SWING_DETECT.MIN_SETUP_FRAMES) {
+          break;
+        }
+        // Compute baseline as average of first frames
+        if (baselineHeight === null) {
+          baselineHeight = handHeightHistory.slice(0, SWING_DETECT.MIN_SETUP_FRAMES)
+            .reduce((a, b) => a + b, 0) / SWING_DETECT.MIN_SETUP_FRAMES;
+          peakHeight = baselineHeight;
+        }
+        // Transition to BACKSWING when hands rise above baseline
+        if (smoothed > baselineHeight + SWING_DETECT.BACKSWING_RISE_THRESHOLD) {
+          swingState = 'BACKSWING';
+          swingStartFrame = frameIdx;
+          peakHeight = smoothed;
+          peakFrame = frameIdx;
+        }
+        break;
+      }
+
+      case 'BACKSWING': {
+        // Track peak
+        if (smoothed > peakHeight) {
+          peakHeight = smoothed;
+          peakFrame = frameIdx;
+        }
+        // Transition to DOWNSWING when hands drop significantly from peak
+        if (peakHeight - smoothed > SWING_DETECT.DOWNSWING_DROP_THRESHOLD) {
+          swingState = 'DOWNSWING';
+          lowestAfterPeak = smoothed;
+          impactFrame = frameIdx;
+        }
+        break;
+      }
+
+      case 'DOWNSWING': {
+        // Track lowest point (impact)
+        if (smoothed < lowestAfterPeak) {
+          lowestAfterPeak = smoothed;
+          impactFrame = frameIdx;
+        }
+        // Transition to FOLLOW_THROUGH when hands start rising again
+        // or when hands have been below peak for enough frames
+        if (smoothed > lowestAfterPeak + 0.01 || (frameIdx - impactFrame > 5)) {
+          swingState = 'FOLLOW_THROUGH';
+          followThroughCounter = 0;
+        }
+        break;
+      }
+
+      case 'FOLLOW_THROUGH': {
+        followThroughCounter++;
+        // Wait for follow-through to settle
+        if (followThroughCounter >= SWING_DETECT.FOLLOW_THROUGH_FRAMES) {
+          // Verify this was a real swing (not just noise)
+          const totalSwingFrames = frameIdx - swingStartFrame;
+          if (totalSwingFrames >= SWING_DETECT.MIN_SWING_FRAMES) {
+            swingState = 'DONE';
+            result.autoStop = true;
+            if (swingDetectedCallback) swingDetectedCallback();
+          } else {
+            // Too short — might be jitter. Reset and keep looking.
+            swingState = 'SETUP';
+            baselineHeight = null;
+            peakHeight = -Infinity;
+          }
+        }
+        break;
+      }
+
+      case 'DONE': {
+        // Already fired. Do nothing.
+        result.autoStop = true;
+        break;
+      }
+    }
+
+    result.phase = swingState;
+    return result;
+  }
+
+  function getSwingPhase() {
+    return swingState;
+  }
+
+  // ══════════════════════════════════════════════
   // Public API
   // ══════════════════════════════════════════════
   return {
     CONFIG,
+    SWING_DETECT,
     validateFrame,
     resetStability,
     trackStability,
@@ -449,5 +637,9 @@ const ValidationModule = (() => {
     validateClip,
     resetRecordingMonitor,
     monitorRecordingFrame,
+    resetSwingDetector,
+    detectSwingLive,
+    onSwingDetected,
+    getSwingPhase,
   };
 })();

@@ -90,7 +90,7 @@
         if (btnStop) btnStop.classList.remove('hidden');
         if (bodyGuide) bodyGuide.classList.add('hidden');
         if (recordingTimer) recordingTimer.classList.remove('hidden');
-        statusText.textContent = 'Recording — complete your swing, then tap Stop';
+        statusText.textContent = 'Recording — swing when ready (auto-stops after swing)';
         break;
 
       case STATE.VALIDATING:
@@ -206,15 +206,45 @@
   }
 
   // ═══════════════════════════════
-  // RECORDING MONITOR
+  // RECORDING MONITOR + LIVE SWING DETECTION
   // ═══════════════════════════════
+  let autoStopPending = false;
+
   function handleRecordingMonitor(landmarks) {
+    // 1. Out-of-frame warnings
     const check = ValidationModule.monitorRecordingFrame(landmarks);
     if (check.warn && recordingWarn) {
       recordingWarn.textContent = check.message;
       recordingWarn.classList.remove('hidden');
     } else if (recordingWarn) {
       recordingWarn.classList.add('hidden');
+    }
+
+    // 2. Live swing detection
+    const swing = ValidationModule.detectSwingLive(landmarks);
+
+    // Update status text with current swing phase
+    const phaseLabels = {
+      'SETUP': 'Waiting for swing...',
+      'BACKSWING': 'Backswing detected...',
+      'DOWNSWING': 'Downswing...',
+      'FOLLOW_THROUGH': 'Follow-through...',
+      'DONE': 'Swing complete!',
+    };
+    if (phaseLabels[swing.phase]) {
+      statusText.textContent = phaseLabels[swing.phase];
+    }
+
+    // 3. Auto-stop when swing is complete
+    if (swing.autoStop && !autoStopPending) {
+      autoStopPending = true;
+      statusText.textContent = 'Swing complete — stopping recording...';
+      // Short delay so user sees the message
+      setTimeout(() => {
+        if (currentState === STATE.RECORDING) {
+          endRecording();
+        }
+      }, 500);
     }
   }
 
@@ -247,6 +277,8 @@
   function beginRecording() {
     setState(STATE.RECORDING);
     ValidationModule.resetRecordingMonitor();
+    ValidationModule.resetSwingDetector();
+    autoStopPending = false;
 
     PoseModule.startCollecting();
     CameraModule.startRecording((time) => {
