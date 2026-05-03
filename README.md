@@ -1,6 +1,10 @@
-# ⛳ Golf Swing Analyzer
+# Golf Swing Analyzer
 
 AI-powered golf swing analysis using your phone's front camera.
+
+## Product Brief
+This is a golf tracking app designed for casual, beginner, and recreational golfers. The app uses the phone’s front-facing camera to capture every detail of your swing, then analyzes and scores your performance based on your swing mechanics. It also provides feedback on what needs to be adjusted and improved.
+
 
 ## Features
 
@@ -21,50 +25,7 @@ AI-powered golf swing analysis using your phone's front camera.
 7. Tap **Stop Recording**
 8. Review your analysis!
 
-## Deploy to GitHub Pages (Free)
 
-### Step 1: Create a GitHub Repository
-
-1. Go to [github.com](https://github.com) and log in
-2. Click the **+** button → **New repository**
-3. Name it `golf-swing-analyzer`
-4. Set it to **Public**
-5. Click **Create repository**
-
-### Step 2: Push the Code
-
-```bash
-cd golf-swing-analyzer
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/golf-swing-analyzer.git
-git push -u origin main
-```
-
-### Step 3: Enable GitHub Pages
-
-1. Go to your repository on GitHub
-2. Click **Settings** → **Pages** (in the sidebar)
-3. Under **Source**, select **main** branch and **/ (root)** folder
-4. Click **Save**
-5. Wait 1-2 minutes, then your app will be live at:
-   `https://YOUR_USERNAME.github.io/golf-swing-analyzer/`
-
-### Step 4: Open on iPhone
-
-1. Open Safari on your iPhone
-2. Go to your GitHub Pages URL
-3. Tap the Share button → **Add to Home Screen**
-4. Now it works like a native app!
-
-## Tech Stack
-
-- **MediaPipe Pose** — Real-time human pose estimation
-- **Canvas API** — Skeleton overlay rendering
-- **MediaRecorder API** — Video recording
-- **Vanilla JavaScript** — No build tools needed
 
 ## Camera Setup
 
@@ -83,13 +44,3 @@ Make sure:
 - Good lighting (outdoor or well-lit indoor)
 - Stable phone mount (tripod recommended)
 
-## Browser Support
-
-- ✅ iOS Safari 14.5+
-- ✅ Chrome (Android/Desktop)
-- ✅ Firefox
-- ⚠️ Some older browsers may not support MediaPipe WASM
-
-## License
-
-MIT
