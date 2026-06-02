@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#FFF9EF">
-  <title>Birdie — Swing Clearly</title>
+  <title>Birdie</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,406 +15,298 @@
 </head>
 <body>
 
-  <!-- ====== LANDING PAGE ====== -->
-  <div id="screen-landing" class="screen active">
-    <div class="landing-scroll">
+  <!-- ===================== APP SHELL ===================== -->
+  <div id="app" class="app">
 
-      <!-- Navigation -->
-      <nav class="nav">
-        <div class="nav-brand">
-          <svg class="nav-logo" width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="44" stroke="#171717" stroke-width="5" fill="none"/>
-            <path d="M50 6 C50 6, 68 30, 50 50 C32 70, 50 94, 50 94" stroke="#D56F55" stroke-width="5" stroke-linecap="round" fill="none"/>
-            <path d="M50 6 C50 6, 32 30, 50 50 C68 70, 50 94, 50 94" stroke="#E5A400" stroke-width="5" stroke-linecap="round" fill="none"/>
-          </svg>
-          <span class="nav-name">birdie</span>
-        </div>
-        <button id="btn-start" class="nav-cta">Get Started</button>
-      </nav>
-
-      <!-- Hero Section -->
-      <section class="hero">
-        <div class="hero-content">
-          <p class="hero-eyebrow">ANALYZE. UNDERSTAND. IMPROVE.</p>
-          <h1 class="hero-title">Your swing.<br><span class="hero-title-em">Understood clearly.</span></h1>
-          <p class="hero-subtitle">Professional analysis that focuses on what matters most — so you can play with more control and less guesswork.</p>
-          <div class="hero-actions">
-            <button id="btn-hero-start" class="btn btn-primary-hero">
-              <span>Start Analyzing</span>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12.5 9L7 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="hero-phone">
-          <div class="phone-mockup">
-            <div class="phone-screen journal-screen">
-              <div class="mock-status-bar">
-                <span>9:41</span>
-                <span class="mock-icons">●●●</span>
-              </div>
-              <h3 class="mock-title">Swing Journal</h3>
-              <p class="mock-date">May 18, 2026 / Session #14 / 7-Iron</p>
-              <div class="mock-journal-header">
-                <div class="mock-journal-text">
-                  <h4>Rushing the transition</h4>
-                  <p>You're starting the downswing a bit early. Let's create more space and strike with control.</p>
-                </div>
-                <div class="mock-score-ring">
-                  <span class="mock-score-num">62</span>
-                  <span class="mock-score-label">/100</span>
-                  <span class="mock-score-grade">Fair</span>
-                </div>
-              </div>
-              <div class="mock-chart">
-                <svg viewBox="0 0 240 80" fill="none" class="sparkline-svg">
-                  <polyline points="10,60 30,55 50,48 70,52 90,45 110,50 130,42 150,38 170,35 190,30 210,32 230,25" stroke="#3F5F45" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="230" cy="25" r="4" fill="#3F5F45"/>
-                  <text x="230" y="18" fill="#3F5F45" font-size="10" text-anchor="middle" font-weight="600">62</text>
-                </svg>
-              </div>
-              <div class="mock-sessions">
-                <div class="mock-sessions-header">
-                  <span class="mock-label">Recent Sessions</span>
-                  <span class="mock-link">See all</span>
-                </div>
-                <div class="mock-session-row"><span>May 18</span><span>Session #14</span><span>7-Iron</span><span class="score-green">62</span></div>
-                <div class="mock-session-row"><span>May 16</span><span>Session #13</span><span>Driver</span><span class="score-green">59</span></div>
-                <div class="mock-session-row"><span>May 14</span><span>Session #12</span><span>7-Iron</span><span class="score-green">60</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Voice Tone Banner -->
-      <section class="tone-banner">
-        <div class="tone-inner">
-          <h2 class="tone-title">Calm precision</h2>
-          <div class="tone-pills">
-            <div class="tone-pill">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="6" width="2" height="8" rx="1" fill="#3F5F45"/><rect x="6" y="4" width="2" height="12" rx="1" fill="#3F5F45"/><rect x="10" y="7" width="2" height="6" rx="1" fill="#3F5F45"/><rect x="14" y="3" width="2" height="14" rx="1" fill="#3F5F45"/></svg>
-              <span>Short. Clear.<br>Coach-like.</span>
-            </div>
-            <div class="tone-pill">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#3F5F45" stroke-width="1.5" fill="none"/><circle cx="10" cy="10" r="3" fill="#3F5F45"/></svg>
-              <span>One insight.<br>One reason. One cue.</span>
-            </div>
-            <div class="tone-pill">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10 Q10 3, 16 10 Q10 17, 4 10Z" stroke="#D56F55" stroke-width="1.5" fill="none"/></svg>
-              <span>Never loud.<br>Never clinical.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Phase Analysis Section -->
-      <section class="feature-section feature-analysis">
-        <div class="feature-text">
-          <p class="feature-eyebrow">BIRDIE ANALYSIS</p>
-          <h2 class="feature-heading">Swipe through<br>each phase</h2>
-          <p class="feature-desc">Move through your swing to see what matters most in the moment.<br><br>One phase. One reason. One cue.</p>
-        </div>
-        <div class="feature-visual">
-          <div class="phone-mockup phone-small">
-            <div class="phone-screen analysis-screen">
-              <div class="mock-status-bar">
-                <span>9:41</span>
-                <span class="mock-icons">●●●</span>
-              </div>
-              <div class="mock-analysis-top">
-                <span class="mock-back">‹</span>
-                <h3 class="mock-analysis-title">Analysis</h3>
-                <span class="mock-dots">•••</span>
-              </div>
-              <div class="mock-tabs">
-                <span class="mock-tab active">Swing</span>
-                <span class="mock-tab">Body</span>
-                <span class="mock-tab">Club</span>
-              </div>
-              <div class="mock-video-area">
-                <div class="mock-video-placeholder">
-                  <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="16" fill="rgba(255,255,255,0.2)"/><polygon points="15,12 25,18 15,24" fill="white"/></svg>
-                </div>
-                <div class="mock-video-time">0:12</div>
-              </div>
-              <div class="mock-phase-breakdown">
-                <p class="mock-phase-title">Phase Breakdown</p>
-                <div class="mock-phases">
-                  <div class="mock-phase-chip">
-                    <div class="mock-phase-icon setup-icon"></div>
-                    <span class="mock-phase-name">Setup</span>
-                    <span class="mock-phase-score">82</span>
-                  </div>
-                  <div class="mock-phase-chip">
-                    <div class="mock-phase-icon backswing-icon"></div>
-                    <span class="mock-phase-name">Backswing</span>
-                    <span class="mock-phase-score score-amber">65</span>
-                  </div>
-                  <div class="mock-phase-chip active-chip">
-                    <div class="mock-phase-icon downswing-icon"></div>
-                    <span class="mock-phase-name">Downswing</span>
-                    <span class="mock-phase-score score-clay">48</span>
-                    <span class="mock-phase-dot"></span>
-                  </div>
-                  <div class="mock-phase-chip">
-                    <div class="mock-phase-icon impact-icon"></div>
-                    <span class="mock-phase-name">Impact</span>
-                    <span class="mock-phase-score score-amber">55</span>
-                  </div>
-                  <div class="mock-phase-chip">
-                    <div class="mock-phase-icon finish-icon"></div>
-                    <span class="mock-phase-name">Finish</span>
-                    <span class="mock-phase-score">72</span>
-                  </div>
-                </div>
-              </div>
-              <div class="mock-insight-card">
-                <div class="mock-insight-icon"></div>
-                <div class="mock-insight-text">
-                  <strong>Downswing 48</strong>
-                  <p>You begin the downswing too early. Focus on weight shift, then turn.</p>
-                </div>
-                <span class="mock-insight-arrow">›</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Phase breakdown visual -->
-        <div class="phase-breakdown-detail">
-          <div class="phase-detail-card">
-            <div class="phase-detail-icon">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="12" fill="#3F5F45" opacity="0.1"/><circle cx="14" cy="14" r="6" fill="#3F5F45"/></svg>
-            </div>
-            <h4>One phase</h4>
-            <p>Focus on the moment that matters.</p>
-          </div>
-          <div class="phase-detail-card">
-            <div class="phase-detail-icon">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="12" fill="#D56F55" opacity="0.1"/><path d="M8 14 Q14 6, 20 14 Q14 22, 8 14Z" fill="#D56F55"/></svg>
-            </div>
-            <h4>One reason</h4>
-            <p>Clear insight into the root cause.</p>
-          </div>
-          <div class="phase-detail-card">
-            <div class="phase-detail-icon">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="12" fill="#E5A400" opacity="0.1"/><path d="M10 18 L14 10 L18 18" stroke="#E5A400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-            </div>
-            <h4>One cue</h4>
-            <p>Actionable guidance you can feel.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Color Palette Showcase -->
-      <section class="palette-section">
-        <div class="palette-inner">
-          <p class="palette-label">COLOR PALETTE</p>
-          <div class="palette-swatches">
-            <div class="swatch" style="background:#FFF9EF"><span>Cream</span></div>
-            <div class="swatch" style="background:#F8F1E6"><span>Warm Cream</span></div>
-            <div class="swatch swatch-dark" style="background:#171717"><span>Ink</span></div>
-            <div class="swatch" style="background:#77946F"><span>Sage</span></div>
-            <div class="swatch swatch-dark" style="background:#3F5F45"><span>Moss</span></div>
-            <div class="swatch" style="background:#E5A400"><span>Amber</span></div>
-            <div class="swatch" style="background:#D56F55"><span>Clay</span></div>
-            <div class="swatch" style="background:#E2D6C5"><span>Line</span></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Features Grid -->
-      <section class="features-grid">
-        <div class="feature-card">
-          <div class="feature-card-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="4" width="24" height="24" rx="4" stroke="#3F5F45" stroke-width="2" fill="none"/><path d="M10 22 L14 14 L18 18 L24 10" stroke="#3F5F45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <h3>Swing Journal</h3>
-          <p>Track every session with scores, trends, and clear summaries. See your progress over time.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#D56F55" stroke-width="2" fill="none"/><path d="M16 8 V16 L22 20" stroke="#D56F55" stroke-width="2" stroke-linecap="round"/></svg>
-          </div>
-          <h3>5-Phase Analysis</h3>
-          <p>Setup, Backswing, Downswing, Impact, Finish — each phase scored and explained.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 24 L16 8 L24 24" stroke="#E5A400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="11" y1="19" x2="21" y2="19" stroke="#E5A400" stroke-width="2"/></svg>
-          </div>
-          <h3>AI-Powered Pose</h3>
-          <p>Real-time body tracking with MediaPipe. No special equipment — just your phone.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="6" y="6" width="20" height="20" rx="10" stroke="#77946F" stroke-width="2" fill="none"/><path d="M13 16 L15.5 18.5 L20 13" stroke="#77946F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <h3>Practice Drills</h3>
-          <p>Personalized improvement tips with actionable cues you can feel on the course.</p>
-        </div>
-      </section>
-
-      <!-- App Icon Section -->
-      <section class="icon-section">
-        <div class="icon-showcase">
-          <div class="icon-card icon-light">
-            <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="100" height="100" rx="22" fill="#FFF9EF"/>
-              <circle cx="50" cy="50" r="32" stroke="#171717" stroke-width="4" fill="none"/>
-              <path d="M50 18 C50 18, 64 36, 50 50 C36 64, 50 82, 50 82" stroke="#D56F55" stroke-width="4" stroke-linecap="round" fill="none"/>
-              <path d="M50 18 C50 18, 36 36, 50 50 C64 64, 50 82, 50 82" stroke="#E5A400" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <!-- ===== TAB: HOME ===== -->
+    <div id="tab-home" class="tab-screen active">
+      <div class="tab-scroll">
+        <header class="app-header">
+          <div class="brand">
+            <svg class="brand-icon" width="32" height="32" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="44" stroke="#171717" stroke-width="5" fill="none"/>
+              <path d="M50 6 C50 6, 68 30, 50 50 C32 70, 50 94, 50 94" stroke="#D56F55" stroke-width="5" stroke-linecap="round" fill="none"/>
+              <path d="M50 6 C50 6, 32 30, 50 50 C68 70, 50 94, 50 94" stroke="#E5A400" stroke-width="5" stroke-linecap="round" fill="none"/>
             </svg>
-            <span>Day Mode</span>
+            <h1 class="brand-name">birdie</h1>
           </div>
-          <div class="icon-card icon-dark">
-            <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="100" height="100" rx="22" fill="#171717"/>
-              <circle cx="50" cy="50" r="32" stroke="#F8F1E6" stroke-width="4" fill="none"/>
-              <path d="M50 18 C50 18, 64 36, 50 50 C36 64, 50 82, 50 82" stroke="#D56F55" stroke-width="4" stroke-linecap="round" fill="none"/>
-              <path d="M50 18 C50 18, 36 36, 50 50 C64 64, 50 82, 50 82" stroke="#E5A400" stroke-width="4" stroke-linecap="round" fill="none"/>
-            </svg>
-            <span>Dark Mode</span>
-          </div>
-        </div>
-        <div class="icon-meaning">
-          <div class="meaning-item">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3F5F45" stroke-width="1.5" fill="none"/><path d="M12 3 Q16 10, 12 12 Q8 14, 12 21" stroke="#3F5F45" stroke-width="1.5" fill="none"/></svg>
-            <div>
-              <strong>Loop</strong>
-              <span>swing path + breath</span>
-            </div>
-          </div>
-          <div class="meaning-item">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><line x1="5" y1="19" x2="19" y2="5" stroke="#D56F55" stroke-width="2" stroke-linecap="round"/></svg>
-            <div>
-              <strong>Cutline</strong>
-              <span>cuts through noise</span>
-            </div>
-          </div>
-          <div class="meaning-item">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" fill="#E5A400"/></svg>
-            <div>
-              <strong>Focus Dot</strong>
-              <span>ball + cue + breakthrough</span>
-            </div>
-          </div>
-        </div>
-      </section>
+          <p class="brand-tagline">swing clearly</p>
+        </header>
 
-      <!-- CTA Footer -->
-      <section class="cta-footer">
-        <div class="cta-inner">
-          <svg class="cta-logo" width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="44" stroke="#171717" stroke-width="5" fill="none"/>
-            <path d="M50 6 C50 6, 68 30, 50 50 C32 70, 50 94, 50 94" stroke="#D56F55" stroke-width="5" stroke-linecap="round" fill="none"/>
-            <path d="M50 6 C50 6, 32 30, 50 50 C68 70, 50 94, 50 94" stroke="#E5A400" stroke-width="5" stroke-linecap="round" fill="none"/>
-          </svg>
-          <h2>Ready to swing clearly?</h2>
-          <p>Place your phone facing you. Full body visible. That's it.</p>
-          <button id="btn-cta-start" class="btn btn-primary-hero">
-            <span>Get Started</span>
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12.5 9L7 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <!-- Quick Score Summary -->
+        <section class="home-score-card">
+          <div class="home-score-left">
+            <p class="home-score-label">Latest Score</p>
+            <div class="home-score-ring" id="home-score-ring">
+              <span class="home-score-num" id="home-score-num">--</span>
+              <span class="home-score-of">/100</span>
+            </div>
+            <p class="home-score-grade" id="home-score-grade">No swings yet</p>
+          </div>
+          <div class="home-score-right">
+            <p class="home-trend-label">Trend</p>
+            <svg id="home-sparkline" viewBox="0 0 120 48" class="home-sparkline" fill="none">
+              <text x="60" y="28" text-anchor="middle" fill="#9A9A8E" font-size="10">Record your first swing</text>
+            </svg>
+          </div>
+        </section>
+
+        <!-- Quick Actions -->
+        <section class="home-actions">
+          <button class="action-card action-record" data-goto="record">
+            <div class="action-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="12" fill="#D56F55" opacity="0.15"/>
+                <circle cx="16" cy="16" r="6" fill="#D56F55"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Record Swing</h3>
+              <p>Capture and analyze your swing</p>
+            </div>
+            <span class="action-arrow">›</span>
           </button>
+
+          <button class="action-card action-journal" data-goto="journal">
+            <div class="action-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <rect x="6" y="4" width="20" height="24" rx="3" fill="#3F5F45" opacity="0.15"/>
+                <path d="M11 12h10M11 16h7M11 20h10" stroke="#3F5F45" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Swing Journal</h3>
+              <p>View sessions, scores & trends</p>
+            </div>
+            <span class="action-arrow">›</span>
+          </button>
+
+          <button class="action-card action-drills" data-goto="drills">
+            <div class="action-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="12" fill="#E5A400" opacity="0.15"/>
+                <path d="M12 20l3-5 3 3 4-6" stroke="#E5A400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <h3>Practice Drills</h3>
+              <p>Personalized improvement tips</p>
+            </div>
+            <span class="action-arrow">›</span>
+          </button>
+        </section>
+
+        <!-- Tips -->
+        <section class="home-tip">
+          <div class="tip-card">
+            <div class="tip-icon">💡</div>
+            <div class="tip-body">
+              <strong>Quick Tip</strong>
+              <p>Place your phone on a tripod, 6-8 feet away. Full body must be visible head to toe.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== TAB: JOURNAL ===== -->
+    <div id="tab-journal" class="tab-screen">
+      <div class="tab-scroll">
+        <header class="screen-header">
+          <h2 class="screen-title">Swing Journal</h2>
+        </header>
+
+        <div id="journal-empty" class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <rect x="8" y="4" width="32" height="40" rx="4" stroke="#E2D6C5" stroke-width="2" fill="none"/>
+            <path d="M16 16h16M16 22h10M16 28h14" stroke="#E2D6C5" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <h3>No swings recorded yet</h3>
+          <p>Hit Record to capture your first swing and start tracking your progress.</p>
+          <button class="btn btn-sm" data-goto="record">Record Swing</button>
         </div>
-      </section>
 
-      <!-- Footer -->
-      <footer class="footer">
-        <p>birdie · swing clearly</p>
-        <p class="footer-sub">AI-powered golf swing analysis</p>
-      </footer>
-
+        <div id="journal-list" class="journal-list hidden"></div>
+      </div>
     </div>
-  </div>
 
-  <!-- ====== CAMERA SCREEN ====== -->
-  <div id="screen-camera" class="screen">
-    <div class="camera-container">
-      <video id="camera-feed" autoplay playsinline muted></video>
-      <canvas id="pose-overlay"></canvas>
-      <div id="body-guide" class="body-guide">
-        <div class="guide-outline"></div>
-        <p class="guide-text">Position yourself inside the outline</p>
+    <!-- ===== TAB: DRILLS ===== -->
+    <div id="tab-drills" class="tab-screen">
+      <div class="tab-scroll">
+        <header class="screen-header">
+          <h2 class="screen-title">Practice</h2>
+        </header>
+
+        <div id="drills-empty" class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="18" stroke="#E2D6C5" stroke-width="2" fill="none"/>
+            <path d="M18 28l4-6 4 4 6-8" stroke="#E2D6C5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3>Drills unlock after your first swing</h3>
+          <p>Record a swing to get personalized practice recommendations.</p>
+          <button class="btn btn-sm" data-goto="record">Record Swing</button>
+        </div>
+
+        <div id="drills-content" class="drills-content hidden">
+          <div class="drill-section">
+            <h3 class="drill-section-title">Focus Areas</h3>
+            <div id="drills-focus" class="drills-list"></div>
+          </div>
+          <div class="drill-section">
+            <h3 class="drill-section-title">Recommended Drills</h3>
+            <div id="drills-list" class="drills-list"></div>
+          </div>
+        </div>
       </div>
-      <div id="thumb-icon" class="thumb-overlay hidden">👍</div>
     </div>
-    <div class="camera-controls">
-      <div id="status-bar" class="status-bar">
-        <span id="status-text">Ready</span>
-        <span id="recording-timer" class="hidden">00:00</span>
-      </div>
-      <div id="gesture-hint" class="gesture-hint hidden">
-        <span>Show 👍 to start recording</span>
-      </div>
-      <div class="btn-row">
-        <button id="btn-record" class="btn btn-record">
-          <span class="record-icon"></span>
-          <span class="record-label">Start Recording</span>
+
+    <!-- ===== SCREEN: CAMERA (Record) ===== -->
+    <div id="screen-camera" class="tab-screen">
+      <div class="camera-container">
+        <video id="camera-feed" autoplay playsinline muted></video>
+        <canvas id="pose-overlay"></canvas>
+        <div id="body-guide" class="body-guide">
+          <div class="guide-outline"></div>
+          <p class="guide-text">Position yourself inside the outline</p>
+        </div>
+        <div id="thumb-icon" class="thumb-overlay hidden">👍</div>
+        <!-- Back button overlay -->
+        <button id="btn-cam-back" class="cam-back-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
-      <button id="btn-back" class="btn btn-secondary btn-small">← Back</button>
-    </div>
-  </div>
-
-  <!-- ====== ANALYZING SCREEN ====== -->
-  <div id="screen-analyzing" class="screen">
-    <div class="analyzing-content">
-      <div class="spinner"></div>
-      <h2>Analyzing Your Swing</h2>
-      <p id="analysis-status">Extracting pose data...</p>
-      <div class="progress-bar">
-        <div id="progress-fill" class="progress-fill"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== RESULTS SCREEN ====== -->
-  <div id="screen-results" class="screen">
-    <div class="results-content">
-      <div class="results-header">
-        <button id="btn-results-back" class="results-back-btn">← Back</button>
-        <h2 class="results-title">Swing Analysis</h2>
-      </div>
-      <div class="score-section">
-        <div id="score-circle" class="score-circle">
-          <span id="score-value" class="score-value">--</span>
-          <span class="score-label">/ 100</span>
+      <div class="camera-controls">
+        <div id="status-bar" class="status-bar">
+          <span id="status-text">Ready</span>
+          <span id="recording-timer" class="hidden">00:00</span>
         </div>
-        <p id="score-grade" class="score-grade"></p>
-      </div>
-
-      <div class="results-details">
-        <div class="result-card">
-          <h3>Phase Breakdown</h3>
-          <div id="phase-scores" class="phase-scores"></div>
+        <div id="gesture-hint" class="gesture-hint hidden">
+          <span>Show 👍 to start recording</span>
         </div>
-        <div class="result-card">
-          <h3>Estimated Impact Point</h3>
-          <div id="impact-diagram" class="impact-diagram">
-            <canvas id="impact-canvas" width="200" height="280"></canvas>
+        <div class="btn-row">
+          <button id="btn-record" class="btn btn-record">
+            <span class="record-icon"></span>
+            <span class="record-label">Start Recording</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: ANALYZING ===== -->
+    <div id="screen-analyzing" class="tab-screen">
+      <div class="analyzing-content">
+        <div class="spinner"></div>
+        <h2>Analyzing Your Swing</h2>
+        <p id="analysis-status">Extracting pose data...</p>
+        <div class="progress-bar">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SCREEN: RESULTS ===== -->
+    <div id="screen-results" class="tab-screen">
+      <div class="tab-scroll">
+        <header class="screen-header">
+          <button id="btn-results-back" class="header-back">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 16l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <h2 class="screen-title">Analysis</h2>
+        </header>
+
+        <!-- Score -->
+        <div class="score-section">
+          <div id="score-circle" class="score-circle">
+            <span id="score-value" class="score-value">--</span>
+            <span class="score-label">/ 100</span>
           </div>
-          <p id="impact-description" class="impact-desc"></p>
+          <p id="score-grade" class="score-grade"></p>
         </div>
-        <div class="result-card">
-          <h3>Key Issues</h3>
-          <ul id="issues-list" class="issues-list"></ul>
-        </div>
-        <div class="result-card">
-          <h3>How to Improve</h3>
-          <ul id="improvements-list" class="improvements-list"></ul>
-        </div>
-      </div>
 
-      <button id="btn-retry" class="btn btn-primary">Record Another Swing</button>
+        <!-- Phase tabs -->
+        <div class="phase-tabs" id="phase-tabs">
+          <button class="phase-tab active" data-phase="all">Overview</button>
+          <button class="phase-tab" data-phase="setup">Setup</button>
+          <button class="phase-tab" data-phase="backswing">Backswing</button>
+          <button class="phase-tab" data-phase="downswing">Downswing</button>
+          <button class="phase-tab" data-phase="impact">Impact</button>
+          <button class="phase-tab" data-phase="followThrough">Finish</button>
+        </div>
+
+        <!-- Phase content -->
+        <div id="phase-detail" class="phase-detail">
+          <!-- Filled by JS -->
+        </div>
+
+        <!-- Full breakdown (shown in Overview) -->
+        <div id="results-overview" class="results-overview">
+          <div class="result-card">
+            <h3>Phase Breakdown</h3>
+            <div id="phase-scores" class="phase-scores"></div>
+          </div>
+          <div class="result-card">
+            <h3>Impact Point</h3>
+            <div id="impact-diagram" class="impact-diagram">
+              <canvas id="impact-canvas" width="200" height="280"></canvas>
+            </div>
+            <p id="impact-description" class="impact-desc"></p>
+          </div>
+          <div class="result-card">
+            <h3>Key Issues</h3>
+            <ul id="issues-list" class="issues-list"></ul>
+          </div>
+          <div class="result-card">
+            <h3>How to Improve</h3>
+            <ul id="improvements-list" class="improvements-list"></ul>
+          </div>
+        </div>
+
+        <button id="btn-retry" class="btn btn-primary btn-block">Record Another Swing</button>
+      </div>
     </div>
+
+    <!-- ===== BOTTOM TAB BAR ===== -->
+    <nav id="tab-bar" class="tab-bar">
+      <button class="tab-btn active" data-tab="home">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M3 8.5L11 2l8 6.5V19a1 1 0 01-1 1H4a1 1 0 01-1-1V8.5z" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M8 20v-7h6v7" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span>Home</span>
+      </button>
+      <button class="tab-btn" data-tab="record">
+        <div class="record-tab-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+            <circle cx="11" cy="11" r="4" fill="currentColor"/>
+          </svg>
+        </div>
+        <span>Record</span>
+      </button>
+      <button class="tab-btn" data-tab="journal">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="4" y="2" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M8 7h6M8 11h4M8 15h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>Journal</span>
+      </button>
+      <button class="tab-btn" data-tab="drills">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M7 13l3-4 3 2.5 3-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Practice</span>
+      </button>
+    </nav>
+
   </div>
 
-  <!-- MediaPipe libraries -->
+  <!-- MediaPipe -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
 
-  <!-- App modules -->
+  <!-- App -->
   <script src="js/camera.js"></script>
   <script src="js/pose.js"></script>
   <script src="js/gesture.js"></script>
