@@ -1,12 +1,12 @@
 {
-  "name": "Golf Swing Analyzer",
-  "short_name": "SwingAI",
-  "description": "AI-powered golf swing analysis from your phone camera",
+  "name": "Birdie — Swing Clearly",
+  "short_name": "Birdie",
+  "description": "AI-powered golf swing analysis. One phase. One reason. One cue.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#1a1a2e",
-  "theme_color": "#2ecc71",
+  "background_color": "#FFF9EF",
+  "theme_color": "#3F5F45",
   "icons": [
     {
       "src": "assets/icon-192.png",

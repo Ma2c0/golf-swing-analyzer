@@ -124,7 +124,7 @@ const UIModule = (() => {
     const faceH = h * 0.5;
     const r = 15;
 
-    ctx.fillStyle = '#2a3a4a';
+    ctx.fillStyle = '#3F5F45';
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 2;
     roundRect(ctx, faceX, faceY, faceW, faceH, r);
@@ -148,7 +148,7 @@ const UIModule = (() => {
     // Sweet spot (center)
     const cx = faceX + faceW / 2;
     const cy = faceY + faceH / 2;
-    ctx.strokeStyle = 'rgba(46, 204, 113, 0.3)';
+    ctx.strokeStyle = 'rgba(63, 95, 69, 0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(cx, cy, 15, 0, Math.PI * 2);
@@ -160,15 +160,15 @@ const UIModule = (() => {
     
     // Glow
     const glow = ctx.createRadialGradient(ix, iy, 0, ix, iy, 20);
-    glow.addColorStop(0, 'rgba(231, 76, 60, 0.6)');
-    glow.addColorStop(1, 'rgba(231, 76, 60, 0)');
+    glow.addColorStop(0, 'rgba(213, 111, 85, 0.6)');
+    glow.addColorStop(1, 'rgba(213, 111, 85, 0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
     ctx.arc(ix, iy, 20, 0, Math.PI * 2);
     ctx.fill();
 
     // Dot
-    ctx.fillStyle = '#e74c3c';
+    ctx.fillStyle = '#D56F55';
     ctx.beginPath();
     ctx.arc(ix, iy, 7, 0, Math.PI * 2);
     ctx.fill();
@@ -206,10 +206,10 @@ const UIModule = (() => {
   }
 
   function getScoreColor(score) {
-    if (score >= 75) return '#2ecc71';
-    if (score >= 60) return '#f1c40f';
-    if (score >= 45) return '#f39c12';
-    return '#e74c3c';
+    if (score >= 75) return '#3F5F45'; // Moss
+    if (score >= 60) return '#E5A400'; // Amber
+    if (score >= 45) return '#E5A400'; // Amber
+    return '#D56F55'; // Clay
   }
 
   return {
