@@ -3,18 +3,12 @@
  */
 const UIModule = (() => {
 
-  /**
-   * Show a screen by id, hide all others.
-   */
   function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) target.classList.add('active');
   }
 
-  /**
-   * Update analysis progress bar.
-   */
   function setProgress(pct, text) {
     const fill = document.getElementById('progress-fill');
     const status = document.getElementById('analysis-status');
@@ -22,9 +16,6 @@ const UIModule = (() => {
     if (status && text) status.textContent = text;
   }
 
-  /**
-   * Render complete analysis results.
-   */
   function renderResults(result) {
     if (result.error) {
       alert(result.message || 'Analysis failed');
@@ -40,7 +31,6 @@ const UIModule = (() => {
     scoreVal.textContent = result.score;
     scoreGrade.textContent = result.grade;
 
-    // Score color
     scoreCircle.className = 'score-circle';
     if (result.score >= 75) scoreCircle.classList.add('score-good');
     else if (result.score >= 60) scoreCircle.classList.add('score-ok');
@@ -105,9 +95,6 @@ const UIModule = (() => {
     showScreen('screen-results');
   }
 
-  /**
-   * Draw the impact point on a clubface diagram.
-   */
   function drawImpactDiagram(impact) {
     const canvas = document.getElementById('impact-canvas');
     if (!canvas) return;
@@ -117,7 +104,7 @@ const UIModule = (() => {
 
     ctx.clearRect(0, 0, w, h);
 
-    // Draw club face outline
+    // Club face
     const faceX = w * 0.2;
     const faceY = h * 0.15;
     const faceW = w * 0.6;
@@ -125,11 +112,11 @@ const UIModule = (() => {
     const r = 15;
 
     ctx.fillStyle = '#3F5F45';
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.strokeStyle = 'rgba(23,23,23,0.3)';
     ctx.lineWidth = 2;
     roundRect(ctx, faceX, faceY, faceW, faceH, r);
 
-    // Grid lines
+    // Grid
     ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     for (let i = 1; i < 3; i++) {
@@ -145,7 +132,7 @@ const UIModule = (() => {
       ctx.stroke();
     }
 
-    // Sweet spot (center)
+    // Sweet spot
     const cx = faceX + faceW / 2;
     const cy = faceY + faceH / 2;
     ctx.strokeStyle = 'rgba(63, 95, 69, 0.4)';
@@ -156,9 +143,8 @@ const UIModule = (() => {
 
     // Impact point
     const ix = cx + (impact.x * faceW * 0.4);
-    const iy = cy - (impact.y * faceH * 0.4); // y inverted for display
-    
-    // Glow
+    const iy = cy - (impact.y * faceH * 0.4);
+
     const glow = ctx.createRadialGradient(ix, iy, 0, ix, iy, 20);
     glow.addColorStop(0, 'rgba(213, 111, 85, 0.6)');
     glow.addColorStop(1, 'rgba(213, 111, 85, 0)');
@@ -167,7 +153,6 @@ const UIModule = (() => {
     ctx.arc(ix, iy, 20, 0, Math.PI * 2);
     ctx.fill();
 
-    // Dot
     ctx.fillStyle = '#D56F55';
     ctx.beginPath();
     ctx.arc(ix, iy, 7, 0, Math.PI * 2);
@@ -177,15 +162,15 @@ const UIModule = (() => {
     ctx.stroke();
 
     // Labels
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(23,23,23,0.4)';
+    ctx.font = '11px Inter, -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('TOE', faceX + 15, faceY + faceH + 25);
     ctx.fillText('HEEL', faceX + faceW - 15, faceY + faceH + 25);
     ctx.fillText('Club Face', cx, h - 15);
 
-    // Hosel indicator
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    // Hosel
+    ctx.fillStyle = 'rgba(23,23,23,0.1)';
     ctx.fillRect(faceX + faceW - 3, faceY + faceH * 0.3, 8, faceH * 0.4);
   }
 
