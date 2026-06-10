@@ -171,6 +171,31 @@ html, body {
 }
 @keyframes recPulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
 
+/* Zoom Controls */
+.zoom-controls {
+  position: absolute; bottom: 14px; right: 14px;
+  display: flex; align-items: center; gap: .3rem;
+  z-index: 12;
+  background: rgba(0,0,0,.45);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--pill); padding: 3px 7px;
+}
+.zoom-btn {
+  width: 30px; height: 30px; border: none; border-radius: 50%;
+  background: rgba(255,255,255,.15); color: #fff;
+  font-size: 1.1rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent; padding: 0; line-height: 1;
+}
+.zoom-btn:active { transform: scale(.88); background: rgba(255,255,255,.3); }
+.zoom-btn:disabled { opacity: .25; pointer-events: none; }
+.zoom-level {
+  font-size: .68rem; font-weight: 700; min-width: 30px;
+  text-align: center; color: #fff; font-variant-numeric: tabular-nums;
+}
+
 /* Checklist */
 .rec-checklist {
   display: flex; flex-direction: column; gap: .55rem; margin-top: 1rem;

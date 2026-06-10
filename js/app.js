@@ -254,6 +254,9 @@
   const btnRecord     = document.getElementById('btn-record');
   const recOverlay    = document.getElementById('rec-overlay');
   const recTimer      = document.getElementById('rec-timer');
+  const btnZoomIn     = document.getElementById('btn-zoom-in');
+  const btnZoomOut    = document.getElementById('btn-zoom-out');
+  const zoomLabel     = document.getElementById('zoom-level');
 
   let isRecording   = false;
   let animFrameId   = null;
@@ -285,7 +288,9 @@
         }
       }
 
+      CameraModule.detectZoom();
       cameraRunning = true;
+      updateZoomUI();
       updateChecklist();
 
       PoseModule.setOnPose(landmarks => {
@@ -331,6 +336,16 @@
     loop();
   }
 
+  // Zoom buttons
+  function updateZoomUI() {
+    const z = CameraModule.getZoom();
+    zoomLabel.textContent = z.toFixed(1) + '\u00d7';
+    btnZoomOut.disabled = z <= CameraModule.ZOOM_MIN;
+    btnZoomIn.disabled  = z >= CameraModule.ZOOM_MAX;
+  }
+  btnZoomIn.addEventListener('click',  () => { CameraModule.zoomIn();  updateZoomUI(); });
+  btnZoomOut.addEventListener('click', () => { CameraModule.zoomOut(); updateZoomUI(); });
+
   // Record button
   btnRecord.addEventListener('click', () => {
     if (!isRecording && bodyVisible) startRecording();
@@ -360,6 +375,8 @@
     await CameraModule.stopRecording();
     cancelAnimationFrame(animFrameId);
     cameraRunning = false;
+    CameraModule.resetZoom();
+    updateZoomUI();
 
     showTab('screen-analyzing');
     await runAnalysis(frameData);
