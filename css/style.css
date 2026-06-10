@@ -46,7 +46,9 @@ html, body {
 .tab-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 0 1.15rem 1.5rem;
+  display: flex; flex-direction: column; align-items: center;
 }
+.tab-scroll > * { width: 100%; }
 
 .hidden { display: none !important; }
 
@@ -129,7 +131,7 @@ html, body {
 
 /* Camera Preview */
 .cam-preview {
-  position: relative; width: 100%; aspect-ratio: 3/4; max-height: 52vh;
+  position: relative; width: 100%; aspect-ratio: 3/4;
   border-radius: var(--r-lg); overflow: hidden; background: #111;
 }
 .cam-preview video {
@@ -222,12 +224,12 @@ html, body {
 /* Controls */
 .rec-controls {
   display: flex; align-items: flex-end; justify-content: center; gap: 1.5rem;
-  margin-top: .7rem;
+  margin-top: .7rem; width: 100%;
 }
 .rec-side-btn {
   display: flex; flex-direction: column; align-items: center; gap: .25rem;
   background: none; border: none; color: var(--text2); font-size: .65rem;
-  font-family: inherit; cursor: pointer;
+  font-family: inherit; cursor: pointer; flex: 1;
 }
 .rec-main-btn {
   background: none; border: none; cursor: pointer; padding: 0;
@@ -250,6 +252,7 @@ html, body {
 
 .rec-hint {
   text-align: center; font-size: .72rem; color: var(--text3); margin-top: .4rem; line-height: 1.4;
+  width: 100%;
 }
 
 
