@@ -129,7 +129,7 @@ html, body {
 
 /* Camera Preview */
 .cam-preview {
-  position: relative; width: 100%; aspect-ratio: 3/4; border-radius: var(--r-lg);
+  position: relative; width: 100%; aspect-ratio: 4/3; border-radius: var(--r-lg);
   overflow: hidden; background: #111;
 }
 .cam-preview video {
@@ -198,7 +198,7 @@ html, body {
 
 /* Checklist */
 .rec-checklist {
-  display: flex; flex-direction: column; gap: .55rem; margin-top: 1rem;
+  display: flex; flex-direction: column; gap: .4rem; margin-top: .6rem;
 }
 .chk-row {
   display: flex; align-items: center; gap: .6rem; font-size: .82rem; color: var(--text2);
@@ -222,7 +222,7 @@ html, body {
 /* Controls */
 .rec-controls {
   display: flex; align-items: flex-end; justify-content: center; gap: 1.5rem;
-  margin-top: 1.2rem;
+  margin-top: .7rem;
 }
 .rec-side-btn {
   display: flex; flex-direction: column; align-items: center; gap: .25rem;
@@ -249,7 +249,7 @@ html, body {
 }
 
 .rec-hint {
-  text-align: center; font-size: .72rem; color: var(--text3); margin-top: .7rem; line-height: 1.4;
+  text-align: center; font-size: .72rem; color: var(--text3); margin-top: .4rem; line-height: 1.4;
 }
 
 
