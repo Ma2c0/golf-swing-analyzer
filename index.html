@@ -294,30 +294,33 @@
     </div>
   </div>
 
-  <!-- ===== BOTTOM TAB BAR ===== -->
-  <nav id="tab-bar" class="tab-bar">
-    <button class="tab-btn" data-tab="record">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
-        <circle cx="11" cy="11" r="4" fill="currentColor"/>
-      </svg>
-      <span>Record</span>
-    </button>
-    <button class="tab-btn active" data-tab="journal">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <rect x="4" y="2" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/>
-        <path d="M8 7h6M8 11h4M8 15h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-      </svg>
-      <span>Journal</span>
-    </button>
-    <button class="tab-btn" data-tab="analysis">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
-        <path d="M7 13l3-4 3 2.5 3-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>Analysis</span>
-    </button>
-  </nav>
+  <!-- ===== SLIDING RAIL TAB BAR ===== -->
+  <div id="tab-bar" class="tab-rail-wrap">
+    <div class="tab-rail">
+      <div class="tab-rail-slider" data-pos="1" id="rail-slider"></div>
+      <button class="rail-btn" data-tab="record" data-pos="0">
+        <svg viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <circle cx="11" cy="11" r="4" fill="currentColor"/>
+        </svg>
+        Record
+      </button>
+      <button class="rail-btn active" data-tab="journal" data-pos="1">
+        <svg viewBox="0 0 22 22" fill="none">
+          <rect x="4" y="2" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M8 7h6M8 11h4M8 15h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Journal
+      </button>
+      <button class="rail-btn" data-tab="analysis" data-pos="2">
+        <svg viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M7 13l3-4 3 2.5 3-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Analysis
+      </button>
+    </div>
+  </div>
 
 </div>
 

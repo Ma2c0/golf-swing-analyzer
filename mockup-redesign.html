@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Birdie — Redesign Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cream: #FFF9EF;
+    --warm: #F5EDDF;
+    --ink: #171717;
+    --sage: #77946F;
+    --moss: #3F5F45;
+    --amber: #E5A400;
+    --clay: #D56F55;
+    --line: #E2D6C5;
+    --text1: #171717;
+    --text2: #5A5A52;
+    --text3: #9A9A8E;
+
+    /* Rail colors — warm earthy theme */
+    --rail-bg: #E8DDD0;
+    --rail-slider: #3F5F45;
+    --rail-text: #9A9A8E;
+    --rail-active: #FFF9EF;
+    --btn-dark: #3F5F45;
+    --btn-border: #D6CABB;
+    --accent-green: #FFF9EF;
+
+    --r: 12px;
+    --r-lg: 16px;
+    --r-xl: 24px;
+    --pill: 100px;
+    --tab-h: 80px;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--cream);
+    color: var(--text1);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .app {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--cream);
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
+  /* ===== TAB SCREENS ===== */
+  .tab-screen {
+    display: none;
+    position: absolute; top: 0; left: 0; right: 0;
+    bottom: var(--tab-h);
+    flex-direction: column;
+    background: var(--cream);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-screen.active { display: flex; }
+
+  .tab-content {
+    flex: 1; padding: 0 1.25rem 2rem;
+    display: flex; flex-direction: column;
+  }
+
+  /* ===== HEADER ===== */
+  .screen-header {
+    display: flex; align-items: center; gap: .6rem;
+    padding: 1.5rem 1.25rem .9rem;
+    background: var(--cream);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .screen-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: var(--ink);
+    flex: 1;
+  }
+  .header-icon-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text2);
+    cursor: pointer; border-radius: 50%;
+  }
+
+  /* ===== NEW SLIDING RAIL TAB BAR ===== */
+  .tab-rail-wrap {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; justify-content: center;
+    padding: 0 1rem calc(var(--safe-b) + 12px);
+    background: var(--cream);
+    z-index: 100;
+    height: var(--tab-h);
+    align-items: center;
+  }
+
+  .tab-rail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--rail-bg);
+    border-radius: 18px;
+    padding: 5px;
+    width: 100%;
+    max-width: 380px;
+    height: 54px;
+    border: 1.5px solid var(--btn-border);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .tab-rail-slider {
+    position: absolute;
+    top: 5px; left: 5px;
+    width: calc(33.333% - 3.33px);
+    height: calc(100% - 10px);
+    background: var(--rail-slider);
+    border-radius: 14px;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(63,95,69,0.25);
+    border: none;
+    z-index: 1;
+  }
+  .tab-rail-slider[data-pos="0"] { transform: translateX(0); }
+  .tab-rail-slider[data-pos="1"] { transform: translateX(calc(100% + 3.33px)); }
+  .tab-rail-slider[data-pos="2"] { transform: translateX(calc(200% + 6.66px)); }
+
+  .rail-btn {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: none; border: none;
+    color: var(--rail-text);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    position: relative;
+    z-index: 2;
+    transition: color 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rail-btn.active {
+    color: var(--accent-green);
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  .rail-btn svg {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ===== NEW BUTTON STYLES ===== */
+  .btn-new {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--moss);
+    color: var(--cream);
+    border: none;
+    border-radius: var(--pill);
+    padding: 0.75rem 1.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-new:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+  .btn-new-primary {
+    background: var(--moss);
+    box-shadow: 0 2px 12px rgba(63,95,69,0.2);
+  }
+  .btn-new-block {
+    display: flex; width: 100%; max-width: 340px; margin: 0 auto;
+  }
+  .btn-new-lg {
+    padding: 0.9rem 2rem;
+    font-size: 1.05rem;
+    border-radius: 16px;
+  }
+
+  /* ===== PILL TOGGLE (for sub-options like Front/DTL) ===== */
+  .pill-toggle {
+    display: inline-flex;
+    background: var(--warm);
+    border-radius: 12px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    gap: 2px;
+  }
+  .pill-toggle-opt {
+    padding: 0.45rem 1rem;
+    background: none;
+    border: none;
+    border-radius: 10px;
+    color: var(--text3);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .pill-toggle-opt.active {
+    background: var(--moss);
+    color: var(--cream);
+  }
+
+  /* ===== CARDS ===== */
+  .card-new {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 1.1rem 1.2rem;
+    margin-bottom: 0.9rem;
+  }
+  .card-new h4 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 0.4rem;
+  }
+  .card-new p {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--text2);
+  }
+  .card-new .label {
+    font-size: 0.78rem;
+    color: var(--text3);
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+  }
+
+  /* ===== SELECT ===== */
+  .select-new {
+    appearance: none;
+    background: var(--warm);
+    color: var(--moss);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.55rem 2rem 0.55rem 1rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%233F5F45'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  /* ===== DEMO CONTENT ===== */
+  .cam-placeholder {
+    width: 100%;
+    aspect-ratio: 3/4;
+    max-height: 46vh;
+    background: #222;
+    border-radius: var(--r-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .cam-placeholder::after {
+    content: '📷 Camera Preview';
+    font-size: 1rem;
+    color: #666;
+  }
+
+  .record-controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 1rem; margin-top: 0.5rem;
+  }
+
+  .record-btn-ring {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 3px solid var(--moss);
+    display: flex; align-items: center; justify-content: center;
+    background: none; cursor: pointer;
+  }
+  .record-btn-inner {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--clay);
+  }
+
+  .options-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.8rem;
+  }
+
+  .journal-entry {
+    display: flex; gap: 0.8rem; align-items: flex-start;
+  }
+  .journal-thumb {
+    width: 56px; height: 56px;
+    border-radius: 10px;
+    background: var(--warm);
+    flex-shrink: 0;
+  }
+  .journal-meta {
+    flex: 1;
+  }
+  .journal-meta h4 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1rem; font-weight: 400; margin-bottom: 0.2rem;
+  }
+  .journal-meta p {
+    font-size: 0.85rem; color: var(--text3); line-height: 1.4;
+  }
+
+  .empty-state {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 3rem 2rem; gap: 0.8rem;
+  }
+  .empty-state h3 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1.2rem; font-weight: 400; color: var(--ink);
+  }
+  .empty-state p {
+    font-size: 0.92rem; color: var(--text3); line-height: 1.5;
+  }
+
+  /* ===== COMPARISON SECTION ===== */
+  .comparison {
+    padding: 2rem 1.25rem;
+    border-top: 2px dashed var(--line);
+    margin-top: 1rem;
+  }
+  .comparison h3 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1.2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--text2);
+  }
+  .compare-row {
+    display: flex; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .compare-col {
+    flex: 1; text-align: center;
+  }
+  .compare-col h4 {
+    font-size: 0.8rem; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+  .old-btn {
+    border: none; border-radius: var(--pill);
+    font-size: .85rem; font-weight: 600;
+    cursor: pointer; padding: .7rem 1.6rem;
+    font-family: inherit;
+    background: var(--moss); color: var(--cream);
+  }
+  .old-tab-bar {
+    display: flex; align-items: center; justify-content: space-around;
+    background: var(--cream); border: 1px solid var(--line);
+    border-radius: 12px; padding: 0.5rem 0;
+    height: 54px;
+  }
+  .old-tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; color: var(--text3);
+    font-size: 0.6rem; font-weight: 600; font-family: inherit;
+  }
+  .old-tab-btn.active { color: var(--moss); }
+
+  /* ===== LABEL TAG ===== */
+  .redesign-label {
+    display: inline-block;
+    background: var(--accent-green);
+    color: var(--rail-bg);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== TAB: RECORD ===== -->
+  <div id="tab-record" class="tab-screen active">
+    <header class="screen-header">
+      <h2 class="screen-title">Record Swing</h2>
+      <button class="header-icon-btn">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="4.5" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="17.5" r="1.5" fill="currentColor"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="tab-content">
+      <div class="options-row">
+        <div class="pill-toggle">
+          <button class="pill-toggle-opt active">Front</button>
+        </div>
+        <select class="select-new">
+          <option>7-Iron</option>
+          <option>Driver</option>
+          <option>3-Wood</option>
+        </select>
+      </div>
+
+      <div class="cam-placeholder"></div>
+
+      <div class="record-controls">
+        <button class="record-btn-ring">
+          <div class="record-btn-inner"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: JOURNAL ===== -->
+  <div id="tab-journal" class="tab-screen">
+    <header class="screen-header">
+      <h2 class="screen-title">Journal</h2>
+      <button class="header-icon-btn">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M5 6h12M5 11h8M5 16h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+    <div class="tab-content">
+      <div class="card-new">
+        <div class="journal-entry">
+          <div class="journal-thumb"></div>
+          <div class="journal-meta">
+            <h4>Morning Session</h4>
+            <p>7-Iron · Front View · Jun 10</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-new">
+        <div class="journal-entry">
+          <div class="journal-thumb"></div>
+          <div class="journal-meta">
+            <h4>Driving Range</h4>
+            <p>Driver · Front View · Jun 9</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-new">
+        <div class="journal-entry">
+          <div class="journal-thumb"></div>
+          <div class="journal-meta">
+            <h4>Short Game Practice</h4>
+            <p>Pitching Wedge · Front View · Jun 8</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: ANALYSIS ===== -->
+  <div id="tab-analysis" class="tab-screen">
+    <header class="screen-header">
+      <h2 class="screen-title">Analysis</h2>
+      <button class="header-icon-btn">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="4.5" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="11" r="1.5" fill="currentColor"/>
+          <circle cx="11" cy="17.5" r="1.5" fill="currentColor"/>
+        </svg>
+      </button>
+    </header>
+    <div class="tab-content">
+      <div class="card-new">
+        <p class="label">Current Phase</p>
+        <h4>Backswing</h4>
+        <p>Focus on maintaining spine angle through the takeaway. Your lead arm stays connected well.</p>
+      </div>
+      <div class="card-new">
+        <p class="label">Key Cue</p>
+        <h4>Keep the Triangle</h4>
+        <p>Maintain the triangle formed by your arms and shoulders during the first phase of backswing.</p>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button class="btn-new btn-new-primary btn-new-lg btn-new-block">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Record New Swing
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDING RAIL TAB BAR ===== -->
+  <div class="tab-rail-wrap">
+    <div class="tab-rail">
+      <div class="tab-rail-slider" data-pos="0" id="rail-slider"></div>
+      <button class="rail-btn active" data-tab="record" data-pos="0">
+        <svg viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <circle cx="11" cy="11" r="4" fill="currentColor"/>
+        </svg>
+        Record
+      </button>
+      <button class="rail-btn" data-tab="journal" data-pos="1">
+        <svg viewBox="0 0 22 22" fill="none">
+          <rect x="4" y="2" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M8 7h6M8 11h4M8 15h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Journal
+      </button>
+      <button class="rail-btn" data-tab="analysis" data-pos="2">
+        <svg viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/>
+          <path d="M7 13l3-4 3 2.5 3-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Analysis
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Rail tab switching
+  const slider = document.getElementById('rail-slider');
+  const railBtns = document.querySelectorAll('.rail-btn');
+  const screens = document.querySelectorAll('.tab-screen');
+
+  railBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      const pos = btn.dataset.pos;
+
+      // Move slider
+      slider.dataset.pos = pos;
+
+      // Update active button
+      railBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Switch screens
+      screens.forEach(s => s.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

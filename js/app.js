@@ -5,9 +5,10 @@
   'use strict';
 
   // ===== NAVIGATION =====
-  const tabBar  = document.getElementById('tab-bar');
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const fsIds   = new Set(['screen-analyzing']);
+  const tabBar    = document.getElementById('tab-bar');
+  const railBtns  = document.querySelectorAll('.rail-btn');
+  const railSlider = document.getElementById('rail-slider');
+  const fsIds     = new Set(['screen-analyzing']);
 
   function showTab(id) {
     document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active', 'fs'));
@@ -19,11 +20,15 @@
     tabBar.classList.toggle('hidden', fs);
 
     const map = { 'tab-record': 'record', 'tab-journal': 'journal', 'tab-analysis': 'analysis' };
+    const posMap = { 'record': '0', 'journal': '1', 'analysis': '2' };
     const active = map[id];
-    if (active) tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === active));
+    if (active) {
+      railBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === active));
+      railSlider.dataset.pos = posMap[active];
+    }
   }
 
-  tabBtns.forEach(btn => btn.addEventListener('click', () => {
+  railBtns.forEach(btn => btn.addEventListener('click', () => {
     const t = btn.dataset.tab;
     if (t === 'record')   { showTab('tab-record'); startCameraPreview(); }
     else if (t === 'journal')  { showTab('tab-journal'); renderJournal(); }
