@@ -129,8 +129,8 @@ html, body {
 
 /* Camera Preview */
 .cam-preview {
-  position: relative; width: 100%; aspect-ratio: 4/3; border-radius: var(--r-lg);
-  overflow: hidden; background: #111;
+  position: relative; width: 100%; aspect-ratio: 3/4; max-height: 52vh;
+  border-radius: var(--r-lg); overflow: hidden; background: #111;
 }
 .cam-preview video {
   width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);
