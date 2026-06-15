@@ -212,10 +212,11 @@ h1 em, h2 em { font-style: italic; color: var(--moss); }
   border: 2px solid rgba(255,255,255,.85); border-radius: 50%;
 }
 .cam-figure {
-  position: absolute; left: 50%; top: 12%;
+  position: absolute; left: 50%; top: 8%;
   transform: translateX(-50%);
-  width: 50%; height: 78%; opacity: .85;
+  width: 56%; height: 88%;
 }
+.cam-figure.golfer-svg { width: 62%; height: 92%; opacity: .95; }
 .zoom-pill {
   position: absolute; bottom: 12px; right: 12px;
   display: inline-flex; gap: 2px;

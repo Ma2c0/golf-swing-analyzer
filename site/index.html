@@ -73,38 +73,49 @@
               <span class="bk bl"></span><span class="bk br"></span>
               <div class="cam-line"></div>
               <div class="cam-ball"></div>
-              <svg class="cam-figure" viewBox="0 0 120 200">
+              <svg class="cam-figure golfer-svg" viewBox="0 0 200 340">
                 <defs>
                   <linearGradient id="bodyGrad1" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stop-color="#3F5F45"/>
-                    <stop offset="1" stop-color="#2D4632"/>
+                    <stop offset="1" stop-color="#2A3B2E"/>
                   </linearGradient>
                 </defs>
-                <!-- Golfer at address (DTL view), silhouette -->
                 <g fill="url(#bodyGrad1)">
-                  <!-- head + cap brim -->
-                  <ellipse cx="62" cy="32" rx="9" ry="10"/>
-                  <path d="M53 30 Q60 24 71 28 L75 33 Q63 30 53 33 Z"/>
+                  <!-- cap crown -->
+                  <path d="M88 50 Q98 32 116 36 Q128 42 124 58 L92 60 Q86 55 88 50 Z"/>
+                  <!-- cap brim sticking out -->
+                  <path d="M82 56 Q92 56 124 58 L132 64 Q108 64 86 64 Z"/>
+                  <!-- head/face (slight chin curve) -->
+                  <path d="M92 60 Q92 76 100 84 Q112 86 118 76 L120 60 Z"/>
                   <!-- neck -->
-                  <rect x="58" y="40" width="7" height="6"/>
-                  <!-- torso, bent forward at hips -->
-                  <path d="M52 46 Q48 70 50 96 Q54 100 64 100 Q72 96 70 70 Q68 50 64 46 Z"/>
-                  <!-- arms together holding club, hanging down/forward -->
-                  <path d="M51 56 Q40 70 36 92 L42 96 Q48 78 54 64 Z"/>
-                  <path d="M67 56 Q60 68 50 92 L40 96 Q39 96 38 96 L36 92 Q48 70 60 56 Z" opacity=".95"/>
-                  <!-- hands grip pod -->
-                  <ellipse cx="40" cy="96" rx="5" ry="4"/>
-                  <!-- pants — wider stance -->
-                  <path d="M52 96 Q44 130 42 160 L52 162 Q56 130 58 100 Z"/>
-                  <path d="M64 96 Q72 130 76 160 L66 162 Q60 130 60 100 Z"/>
-                  <!-- shoes -->
-                  <ellipse cx="47" cy="170" rx="9" ry="4"/>
-                  <ellipse cx="71" cy="170" rx="9" ry="4"/>
+                  <path d="M104 82 L116 82 L114 92 L106 92 Z"/>
+                  <!-- polo shirt torso bent forward at hips -->
+                  <path d="M86 92 Q72 130 76 168 Q90 178 110 178 Q128 174 126 138 Q124 110 122 92 Q112 88 100 88 Q92 88 86 92 Z"/>
+                  <!-- collar hint -->
+                  <path d="M104 92 L106 100 L108 92 Z" fill="#5A8061"/>
+                  <!-- lead arm (closer to camera) reaching forward+down to grip -->
+                  <path d="M84 102 Q66 130 56 162 L72 170 Q86 142 96 116 Z"/>
+                  <!-- trail arm behind, similar angle -->
+                  <path d="M120 104 Q104 130 76 160 L68 168 L56 162 Q86 130 110 102 Z" opacity=".88"/>
+                  <!-- gloved hands stacked on grip -->
+                  <ellipse cx="62" cy="166" rx="10" ry="7" fill="#FFFFFF"/>
+                  <ellipse cx="62" cy="170" rx="9" ry="5" fill="#E8E8E8"/>
+                  <!-- belt line -->
+                  <rect x="82" y="176" width="48" height="4" fill="#1A2520"/>
+                  <!-- pants — athletic golf trousers, slight knee bend -->
+                  <path d="M84 180 Q76 224 74 270 Q72 295 80 305 L96 305 Q102 270 100 230 Q100 200 102 180 Z"/>
+                  <path d="M104 180 Q106 220 112 270 Q116 295 124 305 L138 305 Q140 270 132 230 Q126 200 122 180 Z"/>
+                  <!-- golf shoes (DTL view, foot sideways) -->
+                  <path d="M68 305 L100 305 L102 318 Q88 322 70 318 Z" fill="#1A2520"/>
+                  <path d="M114 305 L142 305 L144 318 Q128 322 112 318 Z" fill="#1A2520"/>
+                  <!-- shoe sole highlight -->
+                  <path d="M70 318 Q88 320 102 318 L100 322 Q88 324 72 322 Z" fill="#FFFFFF" opacity=".7"/>
+                  <path d="M114 318 Q128 320 144 318 L142 322 Q128 324 116 322 Z" fill="#FFFFFF" opacity=".7"/>
                 </g>
-                <!-- club shaft from hands down to ball -->
-                <line x1="40" y1="98" x2="60" y2="176" stroke="#2D4632" stroke-width="1.6" stroke-linecap="round"/>
-                <!-- club head -->
-                <path d="M56 174 L66 178 L62 182 L54 178 Z" fill="#2D4632"/>
+                <!-- club: grip + shaft + iron head -->
+                <rect x="58" y="156" width="8" height="18" fill="#1A2520" rx="2"/>
+                <line x1="62" y1="172" x2="100" y2="316" stroke="#C8C8C8" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M92 316 L108 320 L104 326 L88 322 Z" fill="#9CA2A8" stroke="#1A2520" stroke-width="1"/>
               </svg>
             </div>
             <div class="ph-checklist">
@@ -172,28 +183,35 @@
               <span class="bk bl"></span><span class="bk br"></span>
               <div class="cam-line"></div>
               <div class="cam-ball"></div>
-              <svg class="cam-figure" viewBox="0 0 120 200">
+              <svg class="cam-figure golfer-svg" viewBox="0 0 200 340">
                 <defs>
                   <linearGradient id="bodyGrad2" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stop-color="#3F5F45"/>
-                    <stop offset="1" stop-color="#2D4632"/>
+                    <stop offset="1" stop-color="#2A3B2E"/>
                   </linearGradient>
                 </defs>
                 <g fill="url(#bodyGrad2)">
-                  <ellipse cx="62" cy="32" rx="9" ry="10"/>
-                  <path d="M53 30 Q60 24 71 28 L75 33 Q63 30 53 33 Z"/>
-                  <rect x="58" y="40" width="7" height="6"/>
-                  <path d="M52 46 Q48 70 50 96 Q54 100 64 100 Q72 96 70 70 Q68 50 64 46 Z"/>
-                  <path d="M51 56 Q40 70 36 92 L42 96 Q48 78 54 64 Z"/>
-                  <path d="M67 56 Q60 68 50 92 L40 96 Q39 96 38 96 L36 92 Q48 70 60 56 Z" opacity=".95"/>
-                  <ellipse cx="40" cy="96" rx="5" ry="4"/>
-                  <path d="M52 96 Q44 130 42 160 L52 162 Q56 130 58 100 Z"/>
-                  <path d="M64 96 Q72 130 76 160 L66 162 Q60 130 60 100 Z"/>
-                  <ellipse cx="47" cy="170" rx="9" ry="4"/>
-                  <ellipse cx="71" cy="170" rx="9" ry="4"/>
+                  <path d="M88 50 Q98 32 116 36 Q128 42 124 58 L92 60 Q86 55 88 50 Z"/>
+                  <path d="M82 56 Q92 56 124 58 L132 64 Q108 64 86 64 Z"/>
+                  <path d="M92 60 Q92 76 100 84 Q112 86 118 76 L120 60 Z"/>
+                  <path d="M104 82 L116 82 L114 92 L106 92 Z"/>
+                  <path d="M86 92 Q72 130 76 168 Q90 178 110 178 Q128 174 126 138 Q124 110 122 92 Q112 88 100 88 Q92 88 86 92 Z"/>
+                  <path d="M104 92 L106 100 L108 92 Z" fill="#5A8061"/>
+                  <path d="M84 102 Q66 130 56 162 L72 170 Q86 142 96 116 Z"/>
+                  <path d="M120 104 Q104 130 76 160 L68 168 L56 162 Q86 130 110 102 Z" opacity=".88"/>
+                  <ellipse cx="62" cy="166" rx="10" ry="7" fill="#FFFFFF"/>
+                  <ellipse cx="62" cy="170" rx="9" ry="5" fill="#E8E8E8"/>
+                  <rect x="82" y="176" width="48" height="4" fill="#1A2520"/>
+                  <path d="M84 180 Q76 224 74 270 Q72 295 80 305 L96 305 Q102 270 100 230 Q100 200 102 180 Z"/>
+                  <path d="M104 180 Q106 220 112 270 Q116 295 124 305 L138 305 Q140 270 132 230 Q126 200 122 180 Z"/>
+                  <path d="M68 305 L100 305 L102 318 Q88 322 70 318 Z" fill="#1A2520"/>
+                  <path d="M114 305 L142 305 L144 318 Q128 322 112 318 Z" fill="#1A2520"/>
+                  <path d="M70 318 Q88 320 102 318 L100 322 Q88 324 72 322 Z" fill="#FFFFFF" opacity=".7"/>
+                  <path d="M114 318 Q128 320 144 318 L142 322 Q128 324 116 322 Z" fill="#FFFFFF" opacity=".7"/>
                 </g>
-                <line x1="40" y1="98" x2="60" y2="176" stroke="#2D4632" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M56 174 L66 178 L62 182 L54 178 Z" fill="#2D4632"/>
+                <rect x="58" y="156" width="8" height="18" fill="#1A2520" rx="2"/>
+                <line x1="62" y1="172" x2="100" y2="316" stroke="#C8C8C8" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M92 316 L108 320 L104 326 L88 322 Z" fill="#9CA2A8" stroke="#1A2520" stroke-width="1"/>
               </svg>
               <div class="zoom-pill"><span>0.5×</span><span class="active">1×</span><span>2×</span></div>
             </div>
@@ -309,24 +327,36 @@
                 <line x1="100" y1="10" x2="100" y2="210" stroke="rgba(255,255,255,.45)" stroke-width="1.2" stroke-dasharray="4 4"/>
                 <!-- Golfer silhouette at top of backswing -->
                 <g fill="url(#bodyGrad3)">
-                  <!-- head turned -->
-                  <ellipse cx="100" cy="58" rx="10" ry="11"/>
-                  <path d="M90 56 Q98 48 112 52 L116 58 Q102 54 90 58 Z"/>
-                  <!-- torso, rotated for backswing -->
-                  <path d="M88 68 Q80 100 86 138 Q98 142 112 138 Q118 100 112 68 Z"/>
-                  <!-- lead arm extended across chest up to high hands -->
-                  <path d="M88 80 Q72 70 58 50 L64 44 Q82 56 96 78 Z"/>
-                  <!-- trail arm folded behind head -->
-                  <path d="M112 80 Q120 60 110 42 L118 38 Q132 60 118 82 Z"/>
-                  <!-- hands at top -->
-                  <ellipse cx="60" cy="46" rx="6" ry="5"/>
-                  <!-- pants/legs slightly bent, lead leg straight -->
-                  <path d="M86 138 Q80 170 82 200 L94 200 Q98 170 96 138 Z"/>
-                  <path d="M114 138 Q118 170 118 200 L106 200 Q102 170 104 138 Z"/>
+                  <!-- cap crown -->
+                  <path d="M88 48 Q98 32 116 36 Q128 42 122 56 L92 58 Q86 53 88 48 Z"/>
+                  <!-- cap brim -->
+                  <path d="M80 54 Q92 54 122 56 L130 60 Q108 62 84 60 Z"/>
+                  <!-- head -->
+                  <path d="M92 58 Q92 74 100 80 Q112 82 116 72 L118 58 Z"/>
+                  <!-- neck (slight) -->
+                  <path d="M104 78 L114 78 L112 86 L106 86 Z"/>
+                  <!-- torso rotated for backswing (shoulders turned) -->
+                  <path d="M86 86 Q72 110 80 138 Q94 144 112 142 Q126 132 122 108 Q118 92 116 86 Q104 82 86 86 Z"/>
+                  <!-- lead (front) arm crossing chest up to high hands -->
+                  <path d="M86 96 Q70 80 56 60 Q56 56 60 54 L66 50 Q82 70 96 90 Z"/>
+                  <!-- trail (back) arm folded up behind head -->
+                  <path d="M118 96 Q124 76 116 56 Q118 50 122 50 L128 52 Q140 78 128 100 Z"/>
+                  <!-- gloved hands gripped together high above shoulder -->
+                  <ellipse cx="60" cy="54" rx="7" ry="5" fill="#FFFFFF"/>
+                  <ellipse cx="60" cy="56" rx="6" ry="4" fill="#E0E0E0"/>
+                  <!-- belt -->
+                  <rect x="82" y="138" width="42" height="3" fill="#1A2520"/>
+                  <!-- pants - lead leg straight, trail leg slightly bent -->
+                  <path d="M86 142 Q80 168 82 198 L94 198 Q98 168 98 142 Z"/>
+                  <path d="M104 142 Q108 170 116 198 L128 198 Q124 168 118 142 Z"/>
+                  <!-- shoes -->
+                  <path d="M76 198 L100 198 L100 208 Q86 210 74 208 Z" fill="#1A2520"/>
+                  <path d="M110 198 L132 198 L132 208 Q120 210 108 208 Z" fill="#1A2520"/>
                 </g>
-                <!-- Club shaft up & behind head -->
-                <line x1="60" y1="46" x2="40" y2="18" stroke="#1A2A20" stroke-width="2" stroke-linecap="round"/>
-                <path d="M36 14 L46 18 L42 24 L34 20 Z" fill="#1A2A20"/>
+                <!-- Club shaft going up and behind body -->
+                <rect x="56" y="44" width="8" height="16" fill="#1A2520" rx="2"/>
+                <line x1="60" y1="50" x2="36" y2="14" stroke="#C8C8C8" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M32 10 L44 14 L40 20 L30 16 Z" fill="#9CA2A8" stroke="#1A2520" stroke-width="1"/>
                 <!-- Pose-detection overlay (green dots + lines) -->
                 <g stroke="#7DD96F" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".9">
                   <!-- shoulders -->
