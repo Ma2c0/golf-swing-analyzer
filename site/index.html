@@ -73,10 +73,38 @@
               <span class="bk bl"></span><span class="bk br"></span>
               <div class="cam-line"></div>
               <div class="cam-ball"></div>
-              <svg class="cam-figure" viewBox="0 0 80 140">
-                <circle cx="40" cy="22" r="6" stroke="#3F5F45" stroke-width="1.6" fill="none"/>
-                <path d="M40 28 L40 66 M26 42 L40 36 L54 46 M40 66 L32 96 M40 66 L48 96 M32 96 L28 128 M48 96 L52 128"
-                  stroke="#3F5F45" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+              <svg class="cam-figure" viewBox="0 0 120 200">
+                <defs>
+                  <linearGradient id="bodyGrad1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#3F5F45"/>
+                    <stop offset="1" stop-color="#2D4632"/>
+                  </linearGradient>
+                </defs>
+                <!-- Golfer at address (DTL view), silhouette -->
+                <g fill="url(#bodyGrad1)">
+                  <!-- head + cap brim -->
+                  <ellipse cx="62" cy="32" rx="9" ry="10"/>
+                  <path d="M53 30 Q60 24 71 28 L75 33 Q63 30 53 33 Z"/>
+                  <!-- neck -->
+                  <rect x="58" y="40" width="7" height="6"/>
+                  <!-- torso, bent forward at hips -->
+                  <path d="M52 46 Q48 70 50 96 Q54 100 64 100 Q72 96 70 70 Q68 50 64 46 Z"/>
+                  <!-- arms together holding club, hanging down/forward -->
+                  <path d="M51 56 Q40 70 36 92 L42 96 Q48 78 54 64 Z"/>
+                  <path d="M67 56 Q60 68 50 92 L40 96 Q39 96 38 96 L36 92 Q48 70 60 56 Z" opacity=".95"/>
+                  <!-- hands grip pod -->
+                  <ellipse cx="40" cy="96" rx="5" ry="4"/>
+                  <!-- pants — wider stance -->
+                  <path d="M52 96 Q44 130 42 160 L52 162 Q56 130 58 100 Z"/>
+                  <path d="M64 96 Q72 130 76 160 L66 162 Q60 130 60 100 Z"/>
+                  <!-- shoes -->
+                  <ellipse cx="47" cy="170" rx="9" ry="4"/>
+                  <ellipse cx="71" cy="170" rx="9" ry="4"/>
+                </g>
+                <!-- club shaft from hands down to ball -->
+                <line x1="40" y1="98" x2="60" y2="176" stroke="#2D4632" stroke-width="1.6" stroke-linecap="round"/>
+                <!-- club head -->
+                <path d="M56 174 L66 178 L62 182 L54 178 Z" fill="#2D4632"/>
               </svg>
             </div>
             <div class="ph-checklist">
@@ -144,10 +172,28 @@
               <span class="bk bl"></span><span class="bk br"></span>
               <div class="cam-line"></div>
               <div class="cam-ball"></div>
-              <svg class="cam-figure" viewBox="0 0 80 140">
-                <circle cx="40" cy="22" r="6" stroke="#3F5F45" stroke-width="1.6" fill="none"/>
-                <path d="M40 28 L40 66 M26 42 L40 36 L54 46 M40 66 L32 96 M40 66 L48 96 M32 96 L28 128 M48 96 L52 128"
-                  stroke="#3F5F45" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+              <svg class="cam-figure" viewBox="0 0 120 200">
+                <defs>
+                  <linearGradient id="bodyGrad2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#3F5F45"/>
+                    <stop offset="1" stop-color="#2D4632"/>
+                  </linearGradient>
+                </defs>
+                <g fill="url(#bodyGrad2)">
+                  <ellipse cx="62" cy="32" rx="9" ry="10"/>
+                  <path d="M53 30 Q60 24 71 28 L75 33 Q63 30 53 33 Z"/>
+                  <rect x="58" y="40" width="7" height="6"/>
+                  <path d="M52 46 Q48 70 50 96 Q54 100 64 100 Q72 96 70 70 Q68 50 64 46 Z"/>
+                  <path d="M51 56 Q40 70 36 92 L42 96 Q48 78 54 64 Z"/>
+                  <path d="M67 56 Q60 68 50 92 L40 96 Q39 96 38 96 L36 92 Q48 70 60 56 Z" opacity=".95"/>
+                  <ellipse cx="40" cy="96" rx="5" ry="4"/>
+                  <path d="M52 96 Q44 130 42 160 L52 162 Q56 130 58 100 Z"/>
+                  <path d="M64 96 Q72 130 76 160 L66 162 Q60 130 60 100 Z"/>
+                  <ellipse cx="47" cy="170" rx="9" ry="4"/>
+                  <ellipse cx="71" cy="170" rx="9" ry="4"/>
+                </g>
+                <line x1="40" y1="98" x2="60" y2="176" stroke="#2D4632" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M56 174 L66 178 L62 182 L54 178 Z" fill="#2D4632"/>
               </svg>
               <div class="zoom-pill"><span>0.5×</span><span class="active">1×</span><span>2×</span></div>
             </div>
@@ -253,29 +299,68 @@
                     <stop offset="0" stop-color="#E8DFCB"/>
                     <stop offset="1" stop-color="#C7B89A"/>
                   </linearGradient>
+                  <linearGradient id="bodyGrad3" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#2A3B2E"/>
+                    <stop offset="1" stop-color="#1A2A20"/>
+                  </linearGradient>
                 </defs>
                 <rect width="200" height="160" fill="url(#sky)"/>
                 <rect y="160" width="200" height="60" fill="#9CA886"/>
-                <line x1="100" y1="10" x2="100" y2="210" stroke="rgba(255,255,255,.55)" stroke-width="1.2" stroke-dasharray="4 4"/>
-                <g stroke="#7DD96F" stroke-width="2" fill="none" stroke-linecap="round">
-                  <circle cx="98" cy="55" r="7" fill="#7DD96F"/>
-                  <line x1="98" y1="62" x2="98" y2="115"/>
-                  <line x1="80" y1="80" x2="98" y2="70"/>
-                  <line x1="80" y1="80" x2="60" y2="55"/>
-                  <line x1="60" y1="55" x2="50" y2="30"/>
-                  <line x1="98" y1="115" x2="88" y2="160"/>
-                  <line x1="98" y1="115" x2="108" y2="160"/>
-                  <line x1="88" y1="160" x2="82" y2="200"/>
-                  <line x1="108" y1="160" x2="115" y2="200"/>
+                <line x1="100" y1="10" x2="100" y2="210" stroke="rgba(255,255,255,.45)" stroke-width="1.2" stroke-dasharray="4 4"/>
+                <!-- Golfer silhouette at top of backswing -->
+                <g fill="url(#bodyGrad3)">
+                  <!-- head turned -->
+                  <ellipse cx="100" cy="58" rx="10" ry="11"/>
+                  <path d="M90 56 Q98 48 112 52 L116 58 Q102 54 90 58 Z"/>
+                  <!-- torso, rotated for backswing -->
+                  <path d="M88 68 Q80 100 86 138 Q98 142 112 138 Q118 100 112 68 Z"/>
+                  <!-- lead arm extended across chest up to high hands -->
+                  <path d="M88 80 Q72 70 58 50 L64 44 Q82 56 96 78 Z"/>
+                  <!-- trail arm folded behind head -->
+                  <path d="M112 80 Q120 60 110 42 L118 38 Q132 60 118 82 Z"/>
+                  <!-- hands at top -->
+                  <ellipse cx="60" cy="46" rx="6" ry="5"/>
+                  <!-- pants/legs slightly bent, lead leg straight -->
+                  <path d="M86 138 Q80 170 82 200 L94 200 Q98 170 96 138 Z"/>
+                  <path d="M114 138 Q118 170 118 200 L106 200 Q102 170 104 138 Z"/>
+                </g>
+                <!-- Club shaft up & behind head -->
+                <line x1="60" y1="46" x2="40" y2="18" stroke="#1A2A20" stroke-width="2" stroke-linecap="round"/>
+                <path d="M36 14 L46 18 L42 24 L34 20 Z" fill="#1A2A20"/>
+                <!-- Pose-detection overlay (green dots + lines) -->
+                <g stroke="#7DD96F" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".9">
+                  <!-- shoulders -->
+                  <line x1="88" y1="80" x2="112" y2="80"/>
+                  <!-- spine/torso -->
+                  <line x1="100" y1="68" x2="100" y2="138"/>
+                  <!-- hips -->
+                  <line x1="90" y1="138" x2="110" y2="138"/>
+                  <!-- lead arm -->
+                  <line x1="88" y1="80" x2="74" y2="60"/>
+                  <line x1="74" y1="60" x2="60" y2="46"/>
+                  <!-- trail arm -->
+                  <line x1="112" y1="80" x2="118" y2="60"/>
+                  <line x1="118" y1="60" x2="112" y2="42"/>
+                  <!-- legs -->
+                  <line x1="90" y1="138" x2="86" y2="170"/>
+                  <line x1="86" y1="170" x2="86" y2="200"/>
+                  <line x1="110" y1="138" x2="114" y2="170"/>
+                  <line x1="114" y1="170" x2="114" y2="200"/>
                 </g>
                 <g fill="#7DD96F">
-                  <circle cx="80" cy="80" r="3"/>
-                  <circle cx="60" cy="55" r="3"/>
-                  <circle cx="98" cy="115" r="3"/>
-                  <circle cx="88" cy="160" r="3"/>
-                  <circle cx="108" cy="160" r="3"/>
-                  <circle cx="82" cy="200" r="3"/>
-                  <circle cx="115" cy="200" r="3"/>
+                  <circle cx="100" cy="58" r="3"/>
+                  <circle cx="88" cy="80" r="3"/>
+                  <circle cx="112" cy="80" r="3"/>
+                  <circle cx="74" cy="60" r="3"/>
+                  <circle cx="60" cy="46" r="3"/>
+                  <circle cx="118" cy="60" r="3"/>
+                  <circle cx="112" cy="42" r="3"/>
+                  <circle cx="90" cy="138" r="3"/>
+                  <circle cx="110" cy="138" r="3"/>
+                  <circle cx="86" cy="170" r="3"/>
+                  <circle cx="114" cy="170" r="3"/>
+                  <circle cx="86" cy="200" r="3"/>
+                  <circle cx="114" cy="200" r="3"/>
                 </g>
               </svg>
               <div class="still-play">
