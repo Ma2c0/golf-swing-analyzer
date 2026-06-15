@@ -2,7 +2,7 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --cream: #FFF9EF;
+  --cream: #F5EDDF;
   --warm: #F5EDDF;
   --ink: #171717;
   --sage: #77946F;
@@ -183,10 +183,10 @@ html, body {
   border-radius: var(--r-lg); overflow: hidden; background: #111;
 }
 .cam-preview video {
-  width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);
+  width: 100%; height: 100%; object-fit: cover;
 }
 .cam-preview canvas {
-  position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1);
+  position: absolute; inset: 0; width: 100%; height: 100%;
 }
 
 /* Corner brackets */
@@ -199,10 +199,33 @@ html, body {
 .bracket.bl { bottom: 12px; left: 12px; border-bottom-width: 3px; border-left-width: 3px; border-radius: 0 0 0 4px; }
 .bracket.br { bottom: 12px; right: 12px; border-bottom-width: 3px; border-right-width: 3px; border-radius: 0 0 4px 0; }
 
-.alignment-line {
-  position: absolute; left: 5%; right: 5%; top: 50%;
-  border-top: 2px dashed rgba(46,204,113,.5);
+/* DTL alignment guide */
+.dtl-guide { position: absolute; inset: 0; pointer-events: none; }
+.dtl-target-line {
+  position: absolute; left: 50%; top: 6%; bottom: 6%;
+  width: 0; transform: translateX(-50%);
+  border-left: 2px dashed rgba(46,204,113,.55);
 }
+.dtl-ball-mark {
+  position: absolute; left: 50%; bottom: 18%;
+  width: 18px; height: 18px; transform: translate(-50%, 50%);
+  border: 2px solid rgba(255,255,255,.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.25);
+}
+.dtl-feet-mark {
+  position: absolute; left: 30%; right: 30%; bottom: 14%;
+  height: 0; border-top: 2px dotted rgba(255,255,255,.45);
+}
+.dtl-label {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-size: .58rem; font-weight: 600; color: rgba(255,255,255,.85);
+  letter-spacing: .04em; text-transform: uppercase;
+  background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 4px;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.dtl-label-top { top: 8%; }
+.dtl-label-bot { bottom: 9%; }
 
 /* Recording overlay */
 .rec-overlay {
@@ -241,6 +264,14 @@ html, body {
 }
 .zoom-btn:active { transform: scale(.88); background: rgba(255,255,255,.3); }
 .zoom-btn:disabled { opacity: .25; pointer-events: none; }
+.zoom-btn-wide {
+  width: auto; min-width: 38px; height: 28px; padding: 0 .5rem;
+  border-radius: 14px; font-size: .72rem; font-weight: 700;
+  background: rgba(255,255,255,.18);
+}
+.zoom-btn-wide.active {
+  background: var(--amber); color: #1a1a1a;
+}
 .zoom-level {
   font-size: .68rem; font-weight: 700; min-width: 30px;
   text-align: center; color: #fff; font-variant-numeric: tabular-nums;

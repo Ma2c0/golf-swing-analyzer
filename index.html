@@ -36,7 +36,7 @@
       <!-- Camera / Club Options -->
       <div class="record-options">
         <div class="record-view-tabs">
-          <button class="view-tab active">Front</button>
+          <button class="view-tab active">Down-the-Line</button>
         </div>
         <div class="club-select-wrap">
           <select id="club-select">
@@ -66,10 +66,17 @@
         <span class="bracket tr"></span>
         <span class="bracket bl"></span>
         <span class="bracket br"></span>
-        <!-- Horizontal alignment line -->
-        <div class="alignment-line"></div>
+        <!-- DTL alignment guide: vertical target line + ball/feet markers -->
+        <div class="dtl-guide">
+          <div class="dtl-target-line"></div>
+          <div class="dtl-ball-mark"></div>
+          <div class="dtl-feet-mark"></div>
+          <span class="dtl-label dtl-label-top">Target line</span>
+          <span class="dtl-label dtl-label-bot">Ball</span>
+        </div>
         <!-- Zoom controls -->
         <div id="zoom-controls" class="zoom-controls">
+          <button id="btn-wide" class="zoom-btn zoom-btn-wide hidden" aria-label="Ultra-wide">0.5×</button>
           <button id="btn-zoom-out" class="zoom-btn" aria-label="Zoom out">−</button>
           <span id="zoom-level" class="zoom-level">1.0×</span>
           <button id="btn-zoom-in" class="zoom-btn" aria-label="Zoom in">+</button>
@@ -87,7 +94,7 @@
             <circle cx="9" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2" fill="none"/>
             <path d="M4 16c0-3 2.2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
           </svg>
-          <span class="chk-label">Full body in frame</span>
+          <span class="chk-label">Full body in frame (DTL)</span>
           <span class="chk-tick"></span>
         </div>
         <div class="chk-row" id="chk-light">
@@ -129,7 +136,7 @@
           <span>Help</span>
         </button>
       </div>
-      <p class="rec-hint">Tap record, take your stance, and make one smooth swing.</p>
+      <p class="rec-hint">Place phone behind the ball, aligned with your target line. Tap record and swing.</p>
     </div>
   </div>
 

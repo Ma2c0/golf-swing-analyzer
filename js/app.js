@@ -261,6 +261,7 @@
   const recTimer      = document.getElementById('rec-timer');
   const btnZoomIn     = document.getElementById('btn-zoom-in');
   const btnZoomOut    = document.getElementById('btn-zoom-out');
+  const btnWide       = document.getElementById('btn-wide');
   const zoomLabel     = document.getElementById('zoom-level');
 
   let isRecording   = false;
@@ -345,11 +346,27 @@
   function updateZoomUI() {
     const z = CameraModule.getZoom();
     zoomLabel.textContent = z.toFixed(1) + '\u00d7';
-    btnZoomOut.disabled = z <= CameraModule.ZOOM_MIN;
-    btnZoomIn.disabled  = z >= CameraModule.ZOOM_MAX;
+    btnZoomOut.disabled = z <= CameraModule.getZoomMin();
+    btnZoomIn.disabled  = z >= CameraModule.getZoomMax();
+    // Wide button visibility + active state
+    if (CameraModule.hasUltraWide()) {
+      btnWide.classList.remove('hidden');
+      btnWide.classList.toggle('active', CameraModule.isUltraWide());
+    } else {
+      btnWide.classList.add('hidden');
+    }
   }
   btnZoomIn.addEventListener('click',  () => { CameraModule.zoomIn();  updateZoomUI(); });
   btnZoomOut.addEventListener('click', () => { CameraModule.zoomOut(); updateZoomUI(); });
+  btnWide.addEventListener('click', async () => {
+    btnWide.disabled = true;
+    try {
+      await CameraModule.toggleUltraWide(videoEl);
+    } finally {
+      btnWide.disabled = false;
+      updateZoomUI();
+    }
+  });
 
   // Record button
   btnRecord.addEventListener('click', () => {
