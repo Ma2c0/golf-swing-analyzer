@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8DFCB"/>
+      <stop offset=".55" stop-color="#D5C9B2"/>
+      <stop offset=".65" stop-color="#C2B89E"/>
+      <stop offset="1" stop-color="#A8B094"/>
+    </linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8FA67A"/>
+      <stop offset=".3" stop-color="#7A9866"/>
+      <stop offset="1" stop-color="#6B8C5A"/>
+    </linearGradient>
+    <linearGradient id="trees" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6B7D52"/>
+      <stop offset="1" stop-color="#5A6E46"/>
+    </linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A4A42"/>
+      <stop offset="1" stop-color="#3A3A34"/>
+    </linearGradient>
+    <linearGradient id="pants" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3C3C36"/>
+      <stop offset="1" stop-color="#2E2E28"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background: sky -->
+  <rect width="400" height="300" fill="url(#sky)"/>
+  <!-- Distant tree line -->
+  <ellipse cx="80" cy="175" rx="60" ry="30" fill="url(#trees)" opacity=".7"/>
+  <ellipse cx="180" cy="178" rx="50" ry="25" fill="url(#trees)" opacity=".6"/>
+  <ellipse cx="320" cy="172" rx="70" ry="32" fill="url(#trees)" opacity=".65"/>
+  <!-- Grass -->
+  <rect y="185" width="400" height="115" fill="url(#grass)"/>
+  <!-- Grass texture lines -->
+  <g stroke="#6B8950" stroke-width=".5" opacity=".3">
+    <line x1="0" y1="220" x2="400" y2="222"/>
+    <line x1="0" y1="250" x2="400" y2="248"/>
+    <line x1="0" y1="275" x2="400" y2="277"/>
+  </g>
+
+  <!-- Target line (dashed vertical) -->
+  <line x1="200" y1="10" x2="200" y2="290" stroke="rgba(255,255,255,.45)" stroke-width="1.2" stroke-dasharray="5 4"/>
+
+  <!-- =============================================
+       GOLFER at top-of-backswing (DTL view)
+       Realistic proportions, detailed clothing
+       ============================================= -->
+  <g id="golfer">
+    <!-- Shadow on ground -->
+    <ellipse cx="208" cy="282" rx="44" ry="8" fill="rgba(0,0,0,.15)"/>
+
+    <!-- === SHOES (white golf shoes) === -->
+    <path d="M178 270 L196 270 Q198 270 198 272 L198 280 Q198 284 194 284 L172 284 Q168 284 168 280 L168 278 Q168 274 172 272 Z" fill="#E8E4DC"/>
+    <path d="M172 284 L194 284 L196 288 Q186 290 170 288 Z" fill="#D0CCC4" opacity=".6"/>
+    <path d="M218 272 L236 272 Q238 272 238 274 L238 280 Q238 284 234 284 L212 284 Q208 284 208 280 L210 276 Q212 274 214 272 Z" fill="#E8E4DC"/>
+    <path d="M212 284 L234 284 L236 288 Q226 290 210 288 Z" fill="#D0CCC4" opacity=".6"/>
+
+    <!-- === PANTS (dark charcoal) === -->
+    <!-- Lead leg (left, straighter) -->
+    <path d="M188 196 Q180 228 178 250 Q176 262 178 270 L196 270 Q200 252 200 230 Q200 210 198 196 Z" fill="url(#pants)"/>
+    <!-- Trail leg (right, slightly bent) -->
+    <path d="M212 196 Q218 230 222 255 Q224 264 222 272 L238 272 Q240 255 236 230 Q232 210 226 196 Z" fill="url(#pants)"/>
+    <!-- Belt -->
+    <rect x="186" y="192" width="50" height="5" rx="1" fill="#1E1E1A"/>
+    <!-- Belt buckle -->
+    <rect x="208" y="193" width="6" height="3" rx=".5" fill="#8A8070"/>
+
+    <!-- === TORSO (dark polo shirt, rotated for backswing) === -->
+    <path d="M186 110 Q174 140 180 190 Q192 200 214 200 Q234 196 232 155 Q230 130 226 110 Q214 104 200 104 Q190 106 186 110 Z" fill="url(#shirt)"/>
+    <!-- Collar -->
+    <path d="M200 106 Q196 110 200 114 Q204 110 208 106 Z" fill="#5A5A52"/>
+    <!-- Sleeve wrinkle hints -->
+    <path d="M188 120 Q186 128 188 135" stroke="#5A5A52" stroke-width=".8" fill="none"/>
+    <path d="M224 118 Q226 126 224 134" stroke="#5A5A52" stroke-width=".8" fill="none"/>
+
+    <!-- === ARMS (rotated for top of backswing) === -->
+    <!-- Lead arm (front): from left shoulder across body and up -->
+    <path d="M186 118 Q170 110 156 92 Q150 84 148 76 L156 72 Q160 82 170 96 Q180 108 192 114 Z" fill="url(#shirt)"/>
+    <!-- Trail arm (back): folded up behind head -->
+    <path d="M228 118 Q236 102 234 84 Q232 76 228 72 L222 76 Q226 84 226 96 Q224 108 222 116 Z" fill="url(#shirt)"/>
+
+    <!-- === HANDS (gloved, gripping club at top) === -->
+    <ellipse cx="152" cy="74" rx="8" ry="6" fill="#FFFFFF"/>
+    <ellipse cx="152" cy="76" rx="7" ry="4.5" fill="#E8E0D4"/>
+
+    <!-- === HEAD + CAP === -->
+    <!-- Neck -->
+    <path d="M202 100 L210 100 L208 108 L204 108 Z" fill="#C4A882"/>
+    <!-- Head (slightly turned, showing profile) -->
+    <path d="M196 80 Q194 68 200 60 Q210 54 218 60 Q222 68 220 80 Q214 88 206 90 Q198 88 196 80 Z" fill="#C4A882"/>
+    <!-- Ear hint -->
+    <ellipse cx="220" cy="74" rx="3" ry="5" fill="#B89A78"/>
+    <!-- Cap crown -->
+    <path d="M192 68 Q198 52 214 54 Q224 58 222 68 L196 70 Q192 68 192 68 Z" fill="#3C3C36"/>
+    <!-- Cap brim (sticking out front) -->
+    <path d="M188 66 Q196 66 222 68 L228 72 Q210 74 186 72 Z" fill="#3C3C36"/>
+
+    <!-- === CLUB === -->
+    <!-- Grip (at hands) -->
+    <rect x="148" y="66" width="8" height="16" rx="2" fill="#2A2A24"/>
+    <!-- Shaft going up and behind -->
+    <line x1="152" y1="68" x2="126" y2="28" stroke="#C0C0C0" stroke-width="2.4" stroke-linecap="round"/>
+    <!-- Club head (iron) -->
+    <path d="M120 24 L134 28 L130 34 L118 30 Z" fill="#A0A0A0" stroke="#7A7A7A" stroke-width=".8"/>
+  </g>
+
+  <!-- =============================================
+       MediaPipe GREEN SKELETON OVERLAY
+       Precisely aligned to golfer's joints
+       ============================================= -->
+  <g id="skeleton">
+    <!-- Connection lines -->
+    <g stroke="#2ECC71" stroke-width="2.8" fill="none" stroke-linecap="round" opacity=".92">
+      <!-- Head to neck -->
+      <line x1="208" y1="70" x2="206" y2="100"/>
+      <!-- Neck to mid-spine -->
+      <line x1="206" y1="100" x2="206" y2="112"/>
+      <!-- Shoulders -->
+      <line x1="188" y1="116" x2="226" y2="116"/>
+      <!-- Spine to hips -->
+      <line x1="206" y1="112" x2="210" y2="196"/>
+      <!-- Hips -->
+      <line x1="194" y1="196" x2="226" y2="196"/>
+      <!-- Lead arm: shoulder → elbow → wrist -->
+      <line x1="188" y1="116" x2="166" y2="96"/>
+      <line x1="166" y1="96" x2="152" y2="74"/>
+      <!-- Trail arm: shoulder → elbow → wrist -->
+      <line x1="226" y1="116" x2="232" y2="92"/>
+      <line x1="232" y1="92" x2="226" y2="74"/>
+      <!-- Lead leg: hip → knee → ankle -->
+      <line x1="194" y1="196" x2="186" y2="240"/>
+      <line x1="186" y1="240" x2="182" y2="272"/>
+      <!-- Trail leg: hip → knee → ankle -->
+      <line x1="226" y1="196" x2="230" y2="242"/>
+      <line x1="230" y1="242" x2="228" y2="272"/>
+    </g>
+    <!-- Joint dots -->
+    <g fill="#2ECC71">
+      <!-- Head -->
+      <circle cx="208" cy="70" r="5" stroke="#fff" stroke-width="1.8"/>
+      <!-- Neck -->
+      <circle cx="206" cy="100" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Left shoulder -->
+      <circle cx="188" cy="116" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <!-- Right shoulder -->
+      <circle cx="226" cy="116" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <!-- Left elbow -->
+      <circle cx="166" cy="96" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Left wrist -->
+      <circle cx="152" cy="74" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Right elbow -->
+      <circle cx="232" cy="92" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Right wrist -->
+      <circle cx="226" cy="74" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Left hip -->
+      <circle cx="194" cy="196" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <!-- Right hip -->
+      <circle cx="226" cy="196" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <!-- Left knee -->
+      <circle cx="186" cy="240" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Right knee -->
+      <circle cx="230" cy="242" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Left ankle -->
+      <circle cx="182" cy="272" r="4" stroke="#fff" stroke-width="1.2"/>
+      <!-- Right ankle -->
+      <circle cx="228" cy="272" r="4" stroke="#fff" stroke-width="1.2"/>
+    </g>
+  </g>
+</svg>

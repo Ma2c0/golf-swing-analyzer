@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="rsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D8E0C8"/>
+      <stop offset=".5" stop-color="#C2CCA8"/>
+      <stop offset=".65" stop-color="#A8BA8E"/>
+      <stop offset="1" stop-color="#8FA876"/>
+    </linearGradient>
+    <linearGradient id="rgrass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7E9E68"/>
+      <stop offset="1" stop-color="#5F8848"/>
+    </linearGradient>
+    <linearGradient id="rshirt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B8D0A0"/>
+      <stop offset="1" stop-color="#98B480"/>
+    </linearGradient>
+    <linearGradient id="rpants" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3C3C36"/>
+      <stop offset="1" stop-color="#2A2A24"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="300" fill="url(#rsky)"/>
+  <!-- Distant hills -->
+  <ellipse cx="100" cy="155" rx="120" ry="25" fill="#7A9262" opacity=".5"/>
+  <ellipse cx="300" cy="158" rx="140" ry="28" fill="#7A9262" opacity=".45"/>
+  <!-- Grass -->
+  <rect y="165" width="400" height="135" fill="url(#rgrass)"/>
+  <g stroke="#5A7E42" stroke-width=".5" opacity=".25">
+    <line x1="0" y1="200" x2="400" y2="202"/>
+    <line x1="0" y1="235" x2="400" y2="234"/>
+    <line x1="0" y1="265" x2="400" y2="267"/>
+  </g>
+
+  <!-- =============================================
+       GOLFER at address (DTL view)
+       Bent forward, hands hanging, club to ground
+       ============================================= -->
+  <g id="golfer-address">
+    <!-- Shadow -->
+    <ellipse cx="210" cy="284" rx="40" ry="7" fill="rgba(0,0,0,.12)"/>
+
+    <!-- Shoes -->
+    <path d="M172 272 L192 272 Q194 272 194 274 L194 280 Q194 284 190 284 L166 284 Q162 284 162 280 L164 276 Q166 274 170 272 Z" fill="#E8E4DC"/>
+    <path d="M224 272 L244 272 Q246 272 246 274 L246 280 Q246 284 242 284 L218 284 Q214 284 214 280 L216 276 Q218 274 222 272 Z" fill="#E8E4DC"/>
+
+    <!-- Pants (wider stance at address) -->
+    <path d="M186 198 Q178 230 174 254 Q172 264 172 272 L192 272 Q196 254 198 234 Q200 216 200 198 Z" fill="url(#rpants)"/>
+    <path d="M216 198 Q222 232 226 256 Q228 264 226 272 L244 272 Q246 256 242 232 Q236 212 232 198 Z" fill="url(#rpants)"/>
+    <!-- Belt -->
+    <rect x="184" y="194" width="52" height="5" rx="1" fill="#1E1E1A"/>
+
+    <!-- Torso (bent forward ~30° at hips for address) -->
+    <path d="M182 112 Q168 144 176 192 Q190 202 216 202 Q238 198 236 158 Q234 132 230 112 Q218 106 206 106 Q192 108 182 112 Z" fill="url(#rshirt)"/>
+    <!-- Collar -->
+    <path d="M204 108 Q200 112 204 116 Q208 112 212 108 Z" fill="#88A870"/>
+
+    <!-- Arms hanging down/forward to grip (address position) -->
+    <!-- Lead arm -->
+    <path d="M182 122 Q166 146 156 174 L166 178 Q174 154 186 132 Z" fill="url(#rshirt)"/>
+    <!-- Trail arm -->
+    <path d="M230 122 Q218 146 178 170 L168 178 L156 174 Q196 140 224 118 Z" fill="url(#rshirt)" opacity=".9"/>
+
+    <!-- Hands (stacked on grip) -->
+    <ellipse cx="162" cy="176" rx="9" ry="6" fill="#FFFFFF"/>
+    <ellipse cx="162" cy="178" rx="8" ry="4.5" fill="#E0D8CC"/>
+
+    <!-- Neck -->
+    <path d="M204 100 L214 100 L212 110 L206 110 Z" fill="#C4A882"/>
+    <!-- Head (looking down at ball) -->
+    <path d="M196 80 Q194 66 200 58 Q210 52 220 58 Q224 66 222 78 Q216 86 208 88 Q198 86 196 80 Z" fill="#C4A882"/>
+    <!-- Cap -->
+    <path d="M194 68 Q200 52 216 54 Q226 58 224 68 L198 70 Q194 68 194 68 Z" fill="#2A2A24"/>
+    <path d="M190 66 Q198 66 224 68 L232 72 Q212 74 188 72 Z" fill="#2A2A24"/>
+
+    <!-- Club: grip → shaft → head at ball -->
+    <rect x="158" y="168" width="8" height="18" rx="2" fill="#2A2A24"/>
+    <line x1="162" y1="184" x2="204" y2="280" stroke="#C0C0C0" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M198 278 L212 282 L208 288 L196 284 Z" fill="#A0A0A0" stroke="#7A7A7A" stroke-width=".8"/>
+    <!-- Golf ball -->
+    <circle cx="210" cy="282" r="4" fill="#fff" stroke="#ddd" stroke-width=".5"/>
+  </g>
+
+  <!-- GREEN SKELETON precisely on joints -->
+  <g id="skeleton-address">
+    <g stroke="#2ECC71" stroke-width="2.8" fill="none" stroke-linecap="round" opacity=".92">
+      <line x1="210" y1="70" x2="208" y2="100"/>
+      <line x1="208" y1="100" x2="208" y2="114"/>
+      <line x1="184" y1="118" x2="232" y2="118"/>
+      <line x1="208" y1="114" x2="210" y2="198"/>
+      <line x1="194" y1="198" x2="230" y2="198"/>
+      <!-- Lead arm -->
+      <line x1="184" y1="118" x2="170" y2="146"/>
+      <line x1="170" y1="146" x2="162" y2="176"/>
+      <!-- Trail arm -->
+      <line x1="232" y1="118" x2="210" y2="148"/>
+      <line x1="210" y1="148" x2="162" y2="176"/>
+      <!-- Lead leg -->
+      <line x1="194" y1="198" x2="182" y2="240"/>
+      <line x1="182" y1="240" x2="178" y2="272"/>
+      <!-- Trail leg -->
+      <line x1="230" y1="198" x2="236" y2="242"/>
+      <line x1="236" y1="242" x2="236" y2="272"/>
+    </g>
+    <g fill="#2ECC71">
+      <circle cx="210" cy="70" r="5" stroke="#fff" stroke-width="1.8"/>
+      <circle cx="208" cy="100" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="184" cy="118" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="232" cy="118" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="170" cy="146" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="162" cy="176" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="210" cy="148" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="194" cy="198" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="230" cy="198" r="4.5" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="182" cy="240" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="236" cy="242" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="178" cy="272" r="4" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="236" cy="272" r="4" stroke="#fff" stroke-width="1.2"/>
+    </g>
+  </g>
+</svg>
