@@ -368,6 +368,145 @@
     }
   });
 
+  // Debug: force-show wide button via ?wide=1 (so you can see the UI on desktop).
+  if (new URLSearchParams(location.search).get('wide') === '1') {
+    btnWide.classList.remove('hidden');
+  }
+
+  // ===== IMPORT VIDEO =====
+  const btnImport = document.getElementById('btn-import');
+  const fileInput = document.getElementById('video-file-input');
+
+  btnImport.addEventListener('click', () => {
+    // Triggers the system file/photo library picker.
+    fileInput.value = '';
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a video file.');
+      return;
+    }
+    await analyzeImportedVideo(file);
+  });
+
+  /**
+   * Run MediaPipe pose detection on every frame of an imported video,
+   * then hand the collected landmarks to AnalysisModule (same as recording).
+   */
+  async function analyzeImportedVideo(file) {
+    // Stop the live preview / camera while we process the imported file.
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    if (cameraRunning) {
+      try { CameraModule.destroy(); } catch (_) {}
+      cameraRunning = false;
+      cameraInited = false;
+    }
+
+    showTab('screen-analyzing');
+    UIModule.setProgress(2, 'Loading video...');
+
+    // Make sure Pose is ready (it normally inits on first preview).
+    if (!poseReady) {
+      try {
+        await PoseModule.init(overlayCanvas);
+        poseReady = true;
+      } catch (err) {
+        alert('Pose engine failed to load: ' + err.message);
+        showTab('tab-record');
+        return;
+      }
+    }
+
+    // Build an offscreen video element to seek frame-by-frame.
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.src = url;
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    // Important so Safari/iOS treats it as same-origin pixels.
+    v.crossOrigin = 'anonymous';
+
+    await new Promise((resolve, reject) => {
+      v.onloadedmetadata = () => resolve();
+      v.onerror = () => reject(new Error('Could not load video.'));
+    }).catch(err => {
+      URL.revokeObjectURL(url);
+      alert(err.message);
+      showTab('tab-record');
+      throw err;
+    });
+
+    const duration = v.duration || 0;
+    if (!duration || !isFinite(duration)) {
+      URL.revokeObjectURL(url);
+      alert('Video duration could not be read. Try a different file.');
+      showTab('tab-record');
+      return;
+    }
+
+    // Cap analysis at ~10 seconds (a swing is typically 1.5–3s); take ~30fps.
+    const analyzeDur = Math.min(duration, 10);
+    const fps = 30;
+    const totalFrames = Math.max(10, Math.floor(analyzeDur * fps));
+
+    // Reset frame buffer
+    PoseModule.startCollecting();
+
+    // Seek & process each frame.
+    for (let i = 0; i < totalFrames; i++) {
+      const t = (i / fps);
+      await seekTo(v, t);
+      try {
+        await PoseModule.sendFrame(v);
+      } catch (_) {}
+      if (i % 5 === 0) {
+        const pct = 5 + Math.floor((i / totalFrames) * 70);
+        UIModule.setProgress(pct, `Extracting pose data... ${i}/${totalFrames}`);
+      }
+    }
+
+    const frameData = PoseModule.stopCollecting();
+    URL.revokeObjectURL(url);
+
+    UIModule.setProgress(80, 'Analyzing swing mechanics...');
+    await sleep(200);
+    const result = AnalysisModule.analyze(frameData);
+    UIModule.setProgress(95, 'Finalizing...');
+    await sleep(200);
+    UIModule.setProgress(100, 'Complete!');
+    await sleep(300);
+
+    const club = document.getElementById('club-select').value;
+    if (!result.error) {
+      saveSwing(result, club);
+      currentResult = result;
+      UIModule.renderAnalysis(result);
+      showTab('tab-analysis');
+    } else {
+      alert(result.message || 'Could not detect a swing in this video. Make sure the full body is visible.');
+      showTab('tab-record');
+      startCameraPreview();
+    }
+  }
+
+  /** Seek a video to time `t` and resolve when the frame is ready. */
+  function seekTo(video, t) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if (done) return; done = true; video.removeEventListener('seeked', finish); resolve(); };
+      video.addEventListener('seeked', finish, { once: true });
+      try { video.currentTime = Math.min(t, video.duration - 0.001); }
+      catch (_) { finish(); }
+      // Safety timeout in case 'seeked' never fires.
+      setTimeout(finish, 800);
+    });
+  }
+
   // Record button
   btnRecord.addEventListener('click', () => {
     if (!isRecording && bodyVisible) startRecording();
