@@ -34,8 +34,13 @@
      HERO
      ==================================================== -->
 <section class="hero">
+  <!-- Background blobs -->
+  <div class="blob blob-1" aria-hidden="true"></div>
+  <div class="blob blob-2" aria-hidden="true"></div>
+  <div class="dot-grid" aria-hidden="true"></div>
+
   <div class="hero-inner">
-    <div class="hero-copy">
+    <div class="hero-copy reveal">
       <p class="eyebrow">Birdie</p>
       <h1>Record clearly.<br>Analyze <em>calmly.</em></h1>
       <p class="lede">
@@ -44,18 +49,20 @@
       </p>
       <p class="tagline">One recording. One phase. One cue.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="../index.html">Open Birdie</a>
+        <a class="btn btn-primary" href="../index.html">
+          <span class="btn-glow"></span>Open Birdie
+        </a>
         <a class="btn btn-ghost" href="#record">See how it works</a>
       </div>
       <ul class="hero-meta">
-        <li>Free, no account required</li>
-        <li>On-device analysis, video never leaves your phone</li>
-        <li>Works on iOS and Android browsers</li>
+        <li><span class="meta-dot"></span>Free, no account required</li>
+        <li><span class="meta-dot"></span>On-device analysis, video never leaves your phone</li>
+        <li><span class="meta-dot"></span>Works on iOS and Android browsers</li>
       </ul>
     </div>
-    <div class="hero-visual" aria-hidden="true">
-      <!-- Phone: Record screen with real golfer photo -->
-      <div class="iphone">
+
+    <div class="hero-visual reveal reveal-right" aria-hidden="true">
+      <div class="iphone float-anim">
         <div class="iphone-frame">
           <div class="notch"></div>
           <div class="screen">
@@ -80,13 +87,13 @@
             </div>
             <div class="ph-rec-row">
               <span class="rec-label">Import</span>
-              <span class="rec-btn"></span>
+              <span class="rec-btn pulse-rec"></span>
               <span class="rec-label">Help</span>
             </div>
           </div>
         </div>
       </div>
-      <!-- Deco -->
+      <!-- Botanical deco -->
       <svg class="deco-leaf hero-leaf" viewBox="0 0 80 160" aria-hidden="true">
         <path d="M40 155 Q40 80 24 48 Q16 32 24 16" stroke="#3F5F45" stroke-width="1.8" fill="none" stroke-linecap="round"/>
         <ellipse cx="30" cy="124" rx="12" ry="5.5" fill="#3F5F45" opacity=".8" transform="rotate(-32 30 124)"/>
@@ -96,15 +103,21 @@
       <div class="deco-stone hero-stone"></div>
     </div>
   </div>
+
+  <!-- Wave divider -->
+  <svg class="wave" viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 40 C360 100 720 0 1080 60 C1260 90 1380 50 1440 40 L1440 100 L0 100 Z" fill="#EFE5D2"/>
+  </svg>
 </section>
 
 <!-- ====================================================
      RECORD SECTION
      ==================================================== -->
-<section id="record" class="split">
+<section id="record" class="split bg-alt">
+  <div class="blob blob-3" aria-hidden="true"></div>
   <div class="split-inner">
-    <div class="split-phone">
-      <div class="iphone">
+    <div class="split-phone reveal reveal-left">
+      <div class="iphone float-anim float-delay-1">
         <div class="iphone-frame">
           <div class="notch"></div>
           <div class="screen">
@@ -129,7 +142,7 @@
             </div>
             <div class="ph-rec-row">
               <span class="rec-label">Import</span>
-              <span class="rec-btn"></span>
+              <span class="rec-btn pulse-rec"></span>
               <span class="rec-label">Help</span>
             </div>
             <p class="ph-hint">Place phone behind the ball, aligned with your target line.</p>
@@ -137,70 +150,85 @@
         </div>
       </div>
     </div>
-    <div class="split-copy">
-      <p class="eyebrow">Birdie Record</p>
+    <div class="split-copy reveal">
+      <p class="eyebrow">Record</p>
       <h2>Frame the shot,<br>not the <em>fuss.</em></h2>
       <p class="lede">
         Set your phone behind the ball along the target line.
         Birdie helps you frame it right — then records one clean swing.
       </p>
       <div class="feature-list">
-        <div class="fl-row">
+        <div class="fl-card glass">
           <span class="fl-mark green-bg"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="7" stroke="#fff" stroke-width="1.6"/><circle cx="11" cy="11" r="2.5" fill="#fff"/></svg></span>
           <div><strong>Down-the-line by default</strong><p>The angle coaches actually want to see.</p></div>
         </div>
-        <div class="fl-row">
+        <div class="fl-card glass">
           <span class="fl-mark amber-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M3 11 Q11 5 19 11 Q11 17 3 11 Z" stroke="#fff" stroke-width="1.6" fill="none"/><circle cx="11" cy="11" r="2.5" fill="#fff"/></svg></span>
-          <div><strong>Ultra-wide lens support</strong><p>Switch to 0.5x so the whole body fits without backing up.</p></div>
+          <div><strong>Ultra-wide lens support</strong><p>Switch to 0.5x so the whole body fits.</p></div>
         </div>
-        <div class="fl-row">
+        <div class="fl-card glass">
           <span class="fl-mark coral-bg"><svg viewBox="0 0 22 22" fill="none"><rect x="5" y="6" width="12" height="10" rx="2" stroke="#fff" stroke-width="1.6" fill="none"/><path d="M9 11 L13 13 L9 15 Z" fill="#fff"/></svg></span>
-          <div><strong>Import from your library</strong><p>Pick an existing video. Same analysis, no reshoot needed.</p></div>
+          <div><strong>Import from your library</strong><p>Pick an existing video. Same analysis.</p></div>
         </div>
       </div>
     </div>
   </div>
+  <svg class="wave wave-flip" viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 60 C240 10 480 80 720 40 C960 0 1200 70 1440 60 L1440 100 L0 100 Z" fill="#F5EDDF"/>
+  </svg>
 </section>
 
 <!-- ====================================================
-     ANALYZE SECTION (matches reference image exactly)
+     TAGLINE STRIP
+     ==================================================== -->
+<section class="strip">
+  <div class="strip-inner reveal">
+    <em>One phase.</em>
+    <span class="strip-dot"></span>
+    <em>One reason.</em>
+    <span class="strip-dot"></span>
+    <em>One cue.</em>
+  </div>
+</section>
+
+<!-- ====================================================
+     ANALYZE SECTION
      ==================================================== -->
 <section id="analyze" class="split split-reverse">
+  <div class="blob blob-4" aria-hidden="true"></div>
   <div class="split-inner">
-    <div class="split-copy">
-      <p class="eyebrow">Birdie Analysis</p>
+    <div class="split-copy reveal">
+      <p class="eyebrow">Analysis</p>
       <h2>Swipe through<br>each <em>phase.</em></h2>
       <p class="lede">
-        Move through your swing to see what matters most in the moment.
+        Move through your swing to see what matters most.
       </p>
       <p class="tagline">One phase. One reason. One cue.</p>
 
-      <!-- Enlarged callout: Phase Breakdown -->
       <h4 class="callout-label">Phase Breakdown</h4>
-      <div class="callout-phases">
+      <div class="callout-phases reveal">
         <button class="cp-arrow">&lsaquo;</button>
-        <div class="cp-chip"><svg class="cp-fig" viewBox="0 0 32 44"><circle cx="16" cy="7" r="3.5" fill="#3F5F45"/><path d="M16 10 L16 26 M8 14 L16 18 L24 10 M16 26 L11 38 M16 26 L21 38" stroke="#3F5F45" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg><span>Backswing</span><strong class="green">65</strong></div>
-        <div class="cp-chip selected"><svg class="cp-fig" viewBox="0 0 32 44"><circle cx="16" cy="7" r="3.5" fill="#D56F55"/><path d="M16 10 L16 26 M6 18 L16 16 L26 12 M16 26 L11 38 M16 26 L21 38" stroke="#D56F55" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg><span>Downswing</span><strong class="coral">48</strong><span class="chip-dot"></span></div>
-        <div class="cp-chip"><svg class="cp-fig" viewBox="0 0 32 44"><circle cx="16" cy="7" r="3.5" fill="#E5A400"/><path d="M16 10 L16 26 M8 16 L24 16 M16 26 L11 38 M16 26 L21 38" stroke="#E5A400" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg><span>Impact</span><strong class="amber">55</strong></div>
+        <div class="cp-chip hover-lift"><svg class="cp-fig" viewBox="0 0 32 44"><circle cx="16" cy="7" r="3.5" fill="#3F5F45"/><path d="M16 10 L16 26 M8 14 L16 18 L24 10 M16 26 L11 38 M16 26 L21 38" stroke="#3F5F45" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg><span>Backswing</span><strong class="green">65</strong></div>
+        <div class="cp-chip selected hover-lift"><svg class="cp-fig" viewBox="0 0 32 44"><circle cx="16" cy="7" r="3.5" fill="#D56F55"/><path d="M16 10 L16 26 M6 18 L16 16 L26 12 M16 26 L11 38 M16 26 L21 38" stroke="#D56F55" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg><span>Downswing</span><strong class="coral">48</strong><span class="chip-dot pulse-dot"></span></div>
+        <div class="cp-chip hover-lift"><svg class="cp-fig" viewBox="0 0 32 44"><circle cx="16" cy="7" r="3.5" fill="#E5A400"/><path d="M16 10 L16 26 M8 16 L24 16 M16 26 L11 38 M16 26 L21 38" stroke="#E5A400" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg><span>Impact</span><strong class="amber">55</strong></div>
         <button class="cp-arrow">&rsaquo;</button>
       </div>
 
-      <!-- Enlarged callout: Phase detail card -->
-      <div class="callout-detail">
+      <div class="callout-detail glass reveal">
         <span class="cd-mark"><svg viewBox="0 0 22 22" fill="none"><path d="M3 11 L7 11 L9 6 L13 16 L15 11 L19 11" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <div class="cd-body"><strong class="coral">Downswing 48</strong><p>You begin the downswing too early.</p></div>
         <span class="cd-arrow">&rsaquo;</span>
       </div>
 
-      <!-- Three badges -->
-      <div class="three-badges">
-        <div class="badge"><span class="badge-mark green-bg"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="6" stroke="#fff" stroke-width="1.6"/><circle cx="11" cy="11" r="2" fill="#fff"/></svg></span><div><strong>One phase</strong><p>Focus on the moment that matters.</p></div></div>
-        <div class="badge"><span class="badge-mark coral-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M3 11 L7 11 L9 6 L13 16 L15 11 L19 11" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>One reason</strong><p>Clear insight into the root cause.</p></div></div>
-        <div class="badge"><span class="badge-mark amber-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M7 18 L16 9 L19 6 M16 9 L12 6" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>One cue</strong><p>Actionable guidance you can feel.</p></div></div>
+      <div class="three-badges reveal">
+        <div class="badge hover-lift"><span class="badge-mark green-bg"><svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="6" stroke="#fff" stroke-width="1.6"/><circle cx="11" cy="11" r="2" fill="#fff"/></svg></span><div><strong>One phase</strong><p>Focus on what matters.</p></div></div>
+        <div class="badge hover-lift"><span class="badge-mark coral-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M3 11 L7 11 L9 6 L13 16 L15 11 L19 11" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>One reason</strong><p>Clear root cause.</p></div></div>
+        <div class="badge hover-lift"><span class="badge-mark amber-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M7 18 L16 9 L19 6 M16 9 L12 6" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><strong>One cue</strong><p>Guidance you can feel.</p></div></div>
       </div>
     </div>
-    <div class="split-phone">
-      <div class="iphone">
+
+    <div class="split-phone reveal reveal-right">
+      <div class="iphone float-anim float-delay-2">
         <div class="iphone-frame">
           <div class="notch"></div>
           <div class="screen">
@@ -211,11 +239,8 @@
               <button class="ph-more">&hellip;</button>
             </div>
             <div class="ph-cat-tabs">
-              <span class="ct active">Swing</span>
-              <span class="ct">Body</span>
-              <span class="ct">Club</span>
+              <span class="ct active">Swing</span><span class="ct">Body</span><span class="ct">Club</span>
             </div>
-            <!-- Golfer with green skeleton (all-in-one SVG) -->
             <div class="video-frame">
               <img src="assets/analysis-frame.svg" alt="" class="vf-photo">
               <span class="vf-play"><svg viewBox="0 0 22 22" fill="none"><path d="M8 6 L17 11 L8 16 Z" fill="#fff"/></svg></span>
@@ -233,7 +258,7 @@
               <span class="pdc-arr">&rsaquo;</span>
             </div>
             <div class="ph-tab-bar">
-              <span>Journal</span><span class="active">Analysis</span><span>Practice</span><span>Learn</span><span>More</span>
+              <span>Journal</span><span class="active">Analysis</span><span>Practice</span>
             </div>
           </div>
         </div>
@@ -247,15 +272,19 @@
       <div class="deco-stone split-stone"></div>
     </div>
   </div>
+  <svg class="wave" viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 40 C360 90 720 10 1080 50 C1260 80 1380 40 1440 40 L1440 100 L0 100 Z" fill="#EFE5D2"/>
+  </svg>
 </section>
 
 <!-- ====================================================
      JOURNAL SECTION
      ==================================================== -->
-<section id="journal" class="split">
+<section id="journal" class="split bg-alt">
+  <div class="blob blob-5" aria-hidden="true"></div>
   <div class="split-inner">
-    <div class="split-phone">
-      <div class="iphone">
+    <div class="split-phone reveal reveal-left">
+      <div class="iphone float-anim">
         <div class="iphone-frame">
           <div class="notch"></div>
           <div class="screen">
@@ -270,15 +299,15 @@
               <div class="jm-ring">
                 <svg viewBox="0 0 80 80">
                   <circle cx="40" cy="40" r="34" stroke="#E2D6C5" stroke-width="5" fill="none"/>
-                  <circle cx="40" cy="40" r="34" stroke="#3F5F45" stroke-width="5" fill="none"
-                    stroke-dasharray="213.6" stroke-dashoffset="55" stroke-linecap="round"
-                    transform="rotate(-90 40 40)"/>
+                  <circle class="ring-anim" cx="40" cy="40" r="34" stroke="#3F5F45" stroke-width="5" fill="none"
+                    stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+                    transform="rotate(-90 40 40)" data-target="55"/>
                 </svg>
-                <div class="jm-ring-text"><span>74</span><small>/100</small></div>
+                <div class="jm-ring-text"><span class="counter" data-to="74">0</span><small>/100</small></div>
               </div>
             </div>
             <svg class="jm-chart" viewBox="0 0 280 70" preserveAspectRatio="none">
-              <polyline points="10,55 30,50 55,52 78,44 100,46 125,38 150,42 175,34 200,36 225,28 250,26 275,18"
+              <polyline class="chart-line" points="10,55 30,50 55,52 78,44 100,46 125,38 150,42 175,34 200,36 225,28 250,26 275,18"
                 stroke="#3F5F45" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="275" cy="18" r="4" fill="#3F5F45"/>
             </svg>
@@ -288,49 +317,53 @@
             <div class="jm-row"><span>Jun 10</span><span>Session #16</span><span>7-Iron</span><strong class="amber">68</strong></div>
             <div class="jm-row"><span>Jun  8</span><span>Session #15</span><span>PW</span><strong class="green">76</strong></div>
             <div class="ph-tab-bar">
-              <span class="active">Journal</span><span>Analysis</span><span>Practice</span><span>Learn</span><span>More</span>
+              <span class="active">Journal</span><span>Analysis</span><span>Practice</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="split-copy">
-      <p class="eyebrow">Birdie Journal</p>
+    <div class="split-copy reveal">
+      <p class="eyebrow">Journal</p>
       <h2>The point<br>is to <em>notice.</em></h2>
       <p class="lede">
         Every swing filed away with the club, the date, and a short note.
         Over a season you see what's drifting and what's holding.
       </p>
       <div class="feature-list">
-        <div class="fl-row">
+        <div class="fl-card glass hover-lift">
           <span class="fl-mark green-bg"><svg viewBox="0 0 22 22" fill="none"><polyline points="4,14 8,10 12,13 18,6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>
-          <div><strong>Trend line at a glance</strong><p>Watch your scores settle into a pattern over weeks.</p></div>
+          <div><strong>Trend line at a glance</strong><p>Watch your scores settle into a pattern.</p></div>
         </div>
-        <div class="fl-row">
+        <div class="fl-card glass hover-lift">
           <span class="fl-mark amber-bg"><svg viewBox="0 0 22 22" fill="none"><rect x="4" y="3" width="14" height="16" rx="2" stroke="#fff" stroke-width="1.6" fill="none"/><path d="M8 8h6M8 12h4" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg></span>
           <div><strong>Per-club history</strong><p>Tap any session to re-open the full analysis.</p></div>
         </div>
-        <div class="fl-row">
-          <span class="fl-mark coral-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M11 3v16M3 11h16" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <div><strong>Everything stays on your device</strong><p>No cloud, no account. Your data is yours.</p></div>
+        <div class="fl-card glass hover-lift">
+          <span class="fl-mark coral-bg"><svg viewBox="0 0 22 22" fill="none"><path d="M11 4v7M4 11h7M11 18v-7M18 11h-7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div><strong>Everything on your device</strong><p>No cloud, no account. Your data is yours.</p></div>
         </div>
       </div>
     </div>
   </div>
+  <svg class="wave wave-flip" viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 50 C200 10 500 80 740 30 C980 -10 1200 60 1440 50 L1440 100 L0 100 Z" fill="#F5EDDF"/>
+  </svg>
 </section>
 
 <!-- ====================================================
      CTA
      ==================================================== -->
 <section class="cta">
-  <div class="cta-inner">
+  <div class="blob blob-6" aria-hidden="true"></div>
+  <div class="cta-inner reveal">
     <img src="../assets/birdie-icon.png" alt="" class="cta-icon">
     <h2>Your swing.<br><em>Understood clearly.</em></h2>
     <p class="lede">
       Record one swing. See the phase that matters. Hear one cue you can feel.
     </p>
     <div class="cta-actions">
-      <a class="btn btn-primary btn-lg" href="../index.html">Open Birdie</a>
+      <a class="btn btn-primary btn-lg" href="../index.html"><span class="btn-glow"></span>Open Birdie</a>
       <a class="btn btn-ghost btn-lg" href="https://github.com/Ma2c0/golf-swing-analyzer" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
@@ -343,6 +376,44 @@
     <small>&copy; 2026 Birdie</small>
   </div>
 </footer>
+
+<!-- Scroll animations -->
+<script>
+(function(){
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }});
+  }, { threshold: 0.15 });
+  reveals.forEach(el => io.observe(el));
+
+  // Counter animation
+  const counters = document.querySelectorAll('.counter');
+  const cio = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target, to = +el.dataset.to;
+      let n = 0;
+      const step = () => { n += Math.ceil(to / 40); if (n > to) n = to; el.textContent = n; if (n < to) requestAnimationFrame(step); };
+      step(); cio.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(el => cio.observe(el));
+
+  // Score ring animation
+  const rings = document.querySelectorAll('.ring-anim');
+  const rio = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target, target = +el.dataset.target;
+      el.style.transition = 'stroke-dashoffset 1.2s ease-out';
+      el.style.strokeDashoffset = target;
+      rio.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  rings.forEach(el => rio.observe(el));
+})();
+</script>
 
 </body>
 </html>
