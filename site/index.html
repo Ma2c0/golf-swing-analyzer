@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#F5EDDF">
+  <title>Birdie — A quieter way to learn your golf swing</title>
+  <meta name="description" content="Birdie turns your phone into a swing coach. Record a swing, get a thoughtful breakdown, and watch the small changes add up.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#top" class="brand" aria-label="Birdie home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none">
+          <path d="M14 3c2.4 4.3 6.5 6.6 10 7.2-1.4 7.2-5.6 12-10 14.8C9.6 22.2 5.4 17.4 4 10.2 7.5 9.6 11.6 7.3 14 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+          <path d="M14 9.2c1.2 2.4 3.4 3.8 5.4 4.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </span>
+      <span class="brand-word">Birdie</span>
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#what">What it does</a>
+      <a href="#how">How it works</a>
+      <a href="#journal">Journal</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a href="#download" class="nav-cta">Open Birdie</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============== HERO ============== -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">A swing study, in your pocket</p>
+        <h1 class="hero-title">
+          The quiet way
+          <span class="hero-italic">to learn</span>
+          your swing.
+        </h1>
+        <p class="hero-lede">
+          Birdie watches one swing at a time. No leaderboards, no streaks to keep,
+          no notifications shouting at you on the range. Just an honest reading of
+          what your body did, written the way a thoughtful coach would write it.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#download">Open Birdie</a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+        <ul class="hero-meta">
+          <li><strong>Free</strong> · no account required</li>
+          <li><strong>On-device</strong> · video never leaves your phone</li>
+          <li><strong>Works on</strong> iOS &amp; Android browsers</li>
+        </ul>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="ph-top">
+              <span class="ph-cam-name">Down-the-Line</span>
+              <span class="ph-club">7-Iron</span>
+            </div>
+            <div class="ph-view">
+              <span class="ph-bracket tl"></span>
+              <span class="ph-bracket tr"></span>
+              <span class="ph-bracket bl"></span>
+              <span class="ph-bracket br"></span>
+              <div class="ph-target"></div>
+              <div class="ph-ball"></div>
+              <svg class="ph-figure" viewBox="0 0 80 140" fill="none">
+                <circle cx="42" cy="22" r="6" stroke="#3F5F45" stroke-width="1.6"/>
+                <path d="M42 28 L42 64 M28 42 L42 36 L58 46 M42 64 L34 96 M42 64 L50 96 M34 96 L30 130 M50 96 L56 130" stroke="#3F5F45" stroke-width="1.6" stroke-linecap="round"/>
+                <path d="M58 46 L72 38" stroke="#E5A400" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 3"/>
+              </svg>
+              <div class="ph-rec"><span class="ph-rec-dot"></span>00:02</div>
+            </div>
+            <div class="ph-bottom">
+              <div class="ph-chk"><span class="dot ok"></span>Full body in frame</div>
+              <div class="ph-chk"><span class="dot ok"></span>Good lighting</div>
+              <div class="ph-chk"><span class="dot"></span>Stable phone</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-floating card-score">
+          <div class="cs-ring">
+            <svg viewBox="0 0 60 60">
+              <circle cx="30" cy="30" r="25" stroke="#E2D6C5" stroke-width="4" fill="none"/>
+              <circle cx="30" cy="30" r="25" stroke="#3F5F45" stroke-width="4" fill="none"
+                stroke-dasharray="157" stroke-dashoffset="40" stroke-linecap="round"
+                transform="rotate(-90 30 30)"/>
+            </svg>
+            <span class="cs-num">82</span>
+          </div>
+          <div class="cs-text">
+            <p class="cs-label">Today</p>
+            <p class="cs-grade">Solid swing</p>
+          </div>
+        </div>
+
+        <div class="card-floating card-tip">
+          <p class="tip-label">Coach's note</p>
+          <p class="tip-text">Your transition is a touch quick. Let the club fall before you turn through.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== MARQUEE / QUIET BANNER ============== -->
+  <section class="quiet-strip">
+    <div class="qs-inner">
+      <span>Down-the-line capture</span>
+      <span class="qs-dot"></span>
+      <span>Phase-by-phase breakdown</span>
+      <span class="qs-dot"></span>
+      <span>Impact estimate</span>
+      <span class="qs-dot"></span>
+      <span>Private journal</span>
+      <span class="qs-dot"></span>
+      <span>Plain-English coaching</span>
+    </div>
+  </section>
+
+  <!-- ============== WHAT IT DOES ============== -->
+  <section id="what" class="what">
+    <header class="section-head">
+      <p class="eyebrow">What Birdie does</p>
+      <h2 class="section-title">
+        Three small habits,
+        <span class="hero-italic">one better swing.</span>
+      </h2>
+      <p class="section-lede">
+        Birdie doesn't try to be a launch monitor or a teaching pro. It's the
+        notebook you'd keep if you had the patience to write down every swing.
+      </p>
+    </header>
+
+    <div class="what-grid">
+
+      <article class="what-card card-record">
+        <div class="card-num">01</div>
+        <h3>Record</h3>
+        <p class="card-lede">
+          Set your phone behind the ball along your target line. Birdie helps you
+          frame the shot — full body, level horizon, steady hands — then records
+          a single, unhurried swing.
+        </p>
+        <ul class="card-list">
+          <li>Down-the-line as the default angle</li>
+          <li>Ultra-wide lens support when your phone has one</li>
+          <li>Optional thumbs-up gesture to start and stop</li>
+          <li>Import an existing video from your library</li>
+        </ul>
+      </article>
+
+      <article class="what-card card-analyze">
+        <div class="card-num">02</div>
+        <h3>Analyse</h3>
+        <p class="card-lede">
+          On-device pose tracking maps your body through setup, backswing,
+          transition, impact and finish. You get a phase-by-phase reading that
+          says what happened — not just a number.
+        </p>
+        <ul class="card-list">
+          <li>Five-phase swing breakdown</li>
+          <li>Tempo, balance, and turn estimates</li>
+          <li>Estimated impact point on the face</li>
+          <li>One or two things to actually try next time</li>
+        </ul>
+      </article>
+
+      <article class="what-card card-journal">
+        <div class="card-num">03</div>
+        <h3>Journal</h3>
+        <p class="card-lede">
+          Every swing is filed away with the club, the date and a short note.
+          Over a season you see what's drifting and what's holding. Quiet
+          progress, without the dashboard fatigue.
+        </p>
+        <ul class="card-list">
+          <li>Trend line of recent sessions</li>
+          <li>Per-club history</li>
+          <li>Re-open any past swing for context</li>
+          <li>Everything stays on your device</li>
+        </ul>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============== HOW IT WORKS ============== -->
+  <section id="how" class="how">
+    <header class="section-head">
+      <p class="eyebrow">How a session goes</p>
+      <h2 class="section-title">
+        Four minutes,
+        <span class="hero-italic">end to end.</span>
+      </h2>
+    </header>
+
+    <ol class="how-steps">
+      <li>
+        <span class="hs-num">i.</span>
+        <div>
+          <h4>Set the camera down-the-line</h4>
+          <p>Four to five metres behind the ball, phone at waist height,
+            target line running through the centre of the screen.</p>
+        </div>
+      </li>
+      <li>
+        <span class="hs-num">ii.</span>
+        <div>
+          <h4>Take your stance</h4>
+          <p>Birdie ticks off the checklist when your full body is in frame
+            and the lighting is good enough to read your pose.</p>
+        </div>
+      </li>
+      <li>
+        <span class="hs-num">iii.</span>
+        <div>
+          <h4>Make one swing</h4>
+          <p>Tap the record button or give the camera a thumbs-up. One swing
+            is enough — Birdie watches every frame.</p>
+        </div>
+      </li>
+      <li>
+        <span class="hs-num">iv.</span>
+        <div>
+          <h4>Read the note</h4>
+          <p>You get a short headline, a score, the phase that needs the most
+            work, and one thing to try next.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============== JOURNAL PREVIEW ============== -->
+  <section id="journal" class="journal-section">
+    <div class="js-grid">
+      <div class="js-copy">
+        <p class="eyebrow">A quiet journal</p>
+        <h2 class="section-title">
+          The point is to
+          <span class="hero-italic">notice.</span>
+        </h2>
+        <p class="section-lede">
+          Birdie doesn't gamify your range time. There are no streaks to
+          protect, no medals to collect. Just a tidy record of what you hit and
+          how it went — the kind of thing you'd flip back through on a quiet
+          evening.
+        </p>
+        <ul class="bullet-clean">
+          <li>Headline that reads like a coach, not an algorithm</li>
+          <li>Trend line so you can see the season at a glance</li>
+          <li>Recent sessions list — tap any one to re-open the analysis</li>
+        </ul>
+      </div>
+
+      <div class="js-mock" aria-hidden="true">
+        <div class="jm-card">
+          <p class="jm-meta">Jun 14, 2026 &nbsp;/&nbsp; Session #12 &nbsp;/&nbsp; 7-Iron</p>
+          <div class="jm-hero">
+            <div class="jm-text">
+              <h3>Good progress</h3>
+              <p>Your tempo settled. Watch the early extension through impact.</p>
+            </div>
+            <div class="jm-ring">
+              <svg viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" stroke="#E2D6C5" stroke-width="5" fill="none"/>
+                <circle cx="40" cy="40" r="34" stroke="#3F5F45" stroke-width="5" fill="none"
+                  stroke-dasharray="213.6" stroke-dashoffset="55" stroke-linecap="round"
+                  transform="rotate(-90 40 40)"/>
+              </svg>
+              <div class="jm-ring-text"><span>74</span><small>/100</small></div>
+            </div>
+          </div>
+          <svg class="jm-chart" viewBox="0 0 300 70" preserveAspectRatio="none">
+            <polyline points="10,55 35,48 60,52 85,40 110,44 135,35 160,38 185,30 210,34 235,26 260,28 285,20"
+              stroke="#3F5F45" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="285" cy="20" r="3.5" fill="#3F5F45"/>
+          </svg>
+          <div class="jm-list">
+            <div class="jm-row"><span>Jun 12</span><span>Session #11</span><span>7-Iron</span><strong>71</strong></div>
+            <div class="jm-row"><span>Jun 10</span><span>Session #10</span><span>Driver</span><strong>68</strong></div>
+            <div class="jm-row"><span>Jun  8</span><span>Session #9</span><span>PW</span><strong>76</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== QUOTE BREAK ============== -->
+  <section class="quote">
+    <blockquote>
+      <p>
+        “The trouble with a swing is you can't see it while you're making it.
+        Birdie is the polite friend standing behind you on the range,
+        telling you what they noticed — and only what's worth noticing.”
+      </p>
+      <cite>— the design brief, more or less</cite>
+    </blockquote>
+  </section>
+
+  <!-- ============== FAQ ============== -->
+  <section id="faq" class="faq">
+    <header class="section-head">
+      <p class="eyebrow">Questions, briefly</p>
+      <h2 class="section-title">Things worth asking.</h2>
+    </header>
+
+    <div class="faq-list">
+      <details>
+        <summary>Do I need to make an account?</summary>
+        <p>No. Birdie runs in your browser and stores swings on your own
+          device. There is no sign-in, no cloud upload, no email capture.</p>
+      </details>
+      <details>
+        <summary>Does my video get uploaded anywhere?</summary>
+        <p>No. Pose tracking runs locally through MediaPipe. The recording and
+          your journal stay on the phone or computer you used.</p>
+      </details>
+      <details>
+        <summary>Will it replace a coach?</summary>
+        <p>It is not trying to. Think of Birdie as a careful pair of eyes
+          between lessons — the kind of feedback you wish you had every
+          time you went to the range alone.</p>
+      </details>
+      <details>
+        <summary>What phones does it work on?</summary>
+        <p>Any modern iPhone or Android device with a recent browser. Phones
+          with an ultra-wide lens get the bonus 0.5× wide framing so you
+          don't have to stand impractically far back.</p>
+      </details>
+      <details>
+        <summary>Can I analyse a video I already shot?</summary>
+        <p>Yes. Tap <em>Import video</em> on the record screen, pick a clip
+          from your library, and Birdie runs the same analysis on it.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============== DOWNLOAD / CTA ============== -->
+  <section id="download" class="cta">
+    <div class="cta-inner">
+      <p class="eyebrow">Try it</p>
+      <h2 class="cta-title">
+        Open Birdie,
+        <span class="hero-italic">record one swing.</span>
+      </h2>
+      <p class="cta-lede">
+        That's the whole onboarding. No tutorial pop-ups, no settings panel
+        to learn. Just the camera, the checklist, and a thoughtful note when
+        you're done.
+      </p>
+      <div class="cta-actions">
+        <a class="btn btn-primary btn-lg" href="../index.html">Open Birdie</a>
+        <a class="btn btn-ghost btn-lg" href="https://github.com/Ma2c0/golf-swing-analyzer" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-inner">
+    <div class="foot-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none">
+          <path d="M14 3c2.4 4.3 6.5 6.6 10 7.2-1.4 7.2-5.6 12-10 14.8C9.6 22.2 5.4 17.4 4 10.2 7.5 9.6 11.6 7.3 14 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </span>
+      <span class="brand-word">Birdie</span>
+    </div>
+    <p class="foot-copy">A small companion for the long, patient work of a better swing.</p>
+    <p class="foot-meta">© 2026 Birdie. Made with care, not haste.</p>
+  </div>
+</footer>
+
+</body>
+</html>
