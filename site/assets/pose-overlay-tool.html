@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Pose Overlay Generator</title>
+  <style>
+    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 2rem; }
+    canvas { border: 1px solid #333; margin: 1rem auto; display: block; max-width: 90vw; }
+    .status { margin: 1rem 0; font-size: 1.2rem; }
+    a { color: #2ECC71; }
+  </style>
+</head>
+<body>
+  <h2>Pose Overlay Generator</h2>
+  <p class="status" id="status">Loading MediaPipe...</p>
+  <canvas id="canvas"></canvas>
+  <div id="links"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
+  <script>
+    const CONNECTIONS = [
+      [0, 11],[0, 12], // nose to shoulders (approx head)
+      [11,12], // shoulders
+      [11,13],[13,15], // left arm
+      [12,14],[14,16], // right arm
+      [11,23],[12,24], // torso sides
+      [23,24], // hips
+      [23,25],[25,27], // left leg
+      [24,26],[26,28], // right leg
+      [27,29],[29,31], // left foot
+      [28,30],[30,32], // right foot
+      [15,17],[15,19],[15,21], // left hand
+      [16,18],[16,20],[16,22], // right hand
+    ];
+
+    const IMPORTANT = [0,11,12,13,14,15,16,23,24,25,26,27,28];
+
+    async function processImage(src, outputName) {
+      const status = document.getElementById('status');
+      status.textContent = 'Loading image: ' + outputName + '...';
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('Failed to load ' + src));
+        img.src = src;
+      });
+
+      const canvas = document.getElementById('canvas');
+      // Output at 800x600 for phone mockup (4:3 aspect)
+      const W = 800, H = 600;
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      // Draw photo covering canvas
+      const scale = Math.max(W / img.width, H / img.height);
+      const sw = img.width * scale, sh = img.height * scale;
+      ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
+
+      status.textContent = 'Running MediaPipe Pose on ' + outputName + '...';
+
+      const pose = new Pose({
+        locateFile: (file) => 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/' + file
+      });
+      pose.setOptions({
+        modelComplexity: 2,
+        smoothLandmarks: false,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.3,
+        minTrackingConfidence: 0.3
+      });
+
+      const landmarks = await new Promise((resolve) => {
+        pose.onResults((results) => {
+          resolve(results.poseLandmarks || null);
+        });
+        pose.send({ image: canvas });
+      });
+
+      if (!landmarks) {
+        status.textContent = 'No pose detected in ' + outputName + '. Try a different photo.';
+        return null;
+      }
+
+      // Draw skeleton
+      // Connections
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      for (const [i, j] of CONNECTIONS) {
+        const a = landmarks[i], b = landmarks[j];
+        if (a && b && a.visibility > 0.3 && b.visibility > 0.3) {
+          ctx.strokeStyle = 'rgba(46, 204, 113, 0.85)';
+          ctx.beginPath();
+          ctx.moveTo(a.x * W, a.y * H);
+          ctx.lineTo(b.x * W, b.y * H);
+          ctx.stroke();
+        }
+      }
+
+      // Joint dots
+      for (const idx of IMPORTANT) {
+        const lm = landmarks[idx];
+        if (lm && lm.visibility > 0.3) {
+          const x = lm.x * W, y = lm.y * H;
+          // White outline
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fillStyle = '#2ECC71';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#fff';
+          ctx.stroke();
+        }
+      }
+
+      // Generate download link
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = outputName;
+      link.textContent = 'Download ' + outputName;
+      link.style.display = 'block';
+      link.style.margin = '0.5rem';
+      document.getElementById('links').appendChild(link);
+
+      status.textContent = 'Done: ' + outputName;
+      return dataUrl;
+    }
+
+    (async () => {
+      try {
+        // Process both photos
+        await processImage('pex3.jpg', 'golfer-swing-overlay.jpg');
+        await processImage('pex1.jpg', 'golfer-address-overlay.jpg');
+        document.getElementById('status').textContent = 'All done! Click links to download, or right-click canvas to save.';
+      } catch (e) {
+        document.getElementById('status').textContent = 'Error: ' + e.message;
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>
