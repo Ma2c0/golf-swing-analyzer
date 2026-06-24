@@ -213,31 +213,31 @@
   // ===== ANALYSIS TAB INTERACTIONS =====
   let currentResult = null;
 
-  // Category tabs
+  // Category tabs (Swing / Club)
   document.querySelector('.cat-tabs').addEventListener('click', e => {
     const tab = e.target.closest('.cat-tab');
     if (!tab) return;
     document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     const cat = tab.dataset.cat;
-    document.getElementById('panel-swing').classList.toggle('hidden', cat !== 'swing');
-    document.getElementById('panel-body').classList.toggle('hidden', cat !== 'body');
-    document.getElementById('panel-club').classList.toggle('hidden', cat !== 'club');
+    const panelSwing = document.getElementById('panel-swing');
+    const panelClub = document.getElementById('panel-club');
+    if (panelSwing) panelSwing.classList.toggle('hidden', cat !== 'swing');
+    if (panelClub) panelClub.classList.toggle('hidden', cat !== 'club');
   });
 
-  // Phase card clicks
+  // Phase card clicks — includes Full Swing playback
   document.getElementById('phase-cards').addEventListener('click', e => {
     const card = e.target.closest('.p-card');
     if (!card || !currentResult) return;
-    UIModule.showPhaseDetail(card.dataset.phase, currentResult.phases);
-  });
-
-  // Phase scroll arrows
-  document.getElementById('phase-arrow-l').addEventListener('click', () => {
-    document.getElementById('phase-cards').scrollBy({ left: -120, behavior: 'smooth' });
-  });
-  document.getElementById('phase-arrow-r').addEventListener('click', () => {
-    document.getElementById('phase-cards').scrollBy({ left: 120, behavior: 'smooth' });
+    const phaseKey = card.dataset.phase;
+    UIModule.showPhaseDetail(phaseKey, currentResult.phases, currentResult);
+    // Full Swing card: trigger the video play button so the user immediately
+    // sees the full motion start.
+    if (phaseKey === 'fullSwing') {
+      const playBtn = document.getElementById('a-play-btn');
+      if (playBtn) playBtn.click();
+    }
   });
 
   // Back button (for journal-to-analysis navigation)
@@ -592,5 +592,38 @@
     };
   }
   renderJournal();
+
+  // ===== DEMO MODE =====
+  // Visit index.html?demo to jump straight into a populated Analysis screen.
+  if (location.search.includes('demo')) {
+    const demo = {
+      error: false, score: 68, grade: 'Needs Work',
+      phases: {
+        setup:        { score: 92, notes: [] },
+        backswing:    { score: 75, notes: ['Left arm bending slightly during backswing.'] },
+        downswing:    { score: 48, notes: [
+          'Hips initiate the downswing before the upper body — torso lag is missing.',
+          'Wrists release too early, costing stored power at impact.',
+          'Weight stays ~60% on the trail foot through impact.'
+        ]},
+        impact:       { score: 55, notes: ['Weight on back foot at impact — should be shifted forward.'] },
+        followThrough:{ score: 72, notes: ['Not fully transferring weight to front foot in finish.'] }
+      },
+      impact: { x: -0.4, y: -0.2, tendency: 'Toe Strike → Hook tendency', description: 'Hands too close to body at impact, catching the toe.' },
+      issues: [
+        'Hips initiate the downswing before the upper body.',
+        'Wrists release too early, costing stored power.',
+        'Weight stays on trail foot through impact.'
+      ],
+      improvements: [
+        'Pump-drill: stop at the "P6" position, hold, then complete.',
+        'Feel a "K-shape" at impact — left side straight, right side angled.',
+        'Practice with feet narrower than shoulder-width to force weight shift.'
+      ]
+    };
+    currentResult = demo;
+    UIModule.renderAnalysis(demo);
+    showTab('tab-analysis');
+  }
 
 })();

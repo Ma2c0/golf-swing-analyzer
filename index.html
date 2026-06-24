@@ -240,44 +240,57 @@
 
       <!-- Analysis Content -->
       <div id="analysis-content" class="analysis-content hidden">
-        <!-- Category Tabs -->
+        <!-- Category Tabs (Swing / Club only) -->
         <div class="cat-tabs">
           <button class="cat-tab active" data-cat="swing">Swing</button>
-          <button class="cat-tab" data-cat="body">Body</button>
           <button class="cat-tab" data-cat="club">Club</button>
+        </div>
+
+        <!-- ---- VIDEO CARD (shared) ---- -->
+        <div class="a-video-card" id="a-video-card">
+          <video id="a-video" class="a-video" playsinline preload="metadata"></video>
+          <canvas id="a-pose-overlay" class="a-pose-overlay"></canvas>
+          <div class="a-dtl-line"></div>
+          <button id="a-play-btn" class="a-play-btn" aria-label="Play">
+            <span class="a-play-icon"></span>
+          </button>
+          <span id="a-video-phase-tag" class="a-video-phase-tag">Setup</span>
+          <span id="a-video-duration" class="a-video-duration">0:00 / 0:00</span>
         </div>
 
         <!-- ---- SWING PANEL ---- -->
         <div id="panel-swing" class="panel">
-          <h4 class="section-label">Phase Breakdown</h4>
+          <h4 class="section-label">Phase Breakdown <span class="section-hint">tap to inspect</span></h4>
           <div class="phase-strip">
-            <button class="phase-arrow phase-arrow-l" id="phase-arrow-l">
-              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-            </button>
             <div class="phase-cards" id="phase-cards"></div>
-            <button class="phase-arrow phase-arrow-r" id="phase-arrow-r">
-              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-            </button>
           </div>
 
           <!-- Phase Detail -->
-          <div class="phase-detail" id="phase-detail"></div>
+          <div class="phase-detail hidden" id="phase-detail"></div>
 
           <!-- Issues -->
           <div class="a-card" id="card-issues">
-            <h4>Key Issues</h4>
+            <h4><span class="a-dot a-dot-clay"></span>Key Issues</h4>
             <ul id="issues-list" class="bullet-list clay-list"></ul>
           </div>
           <!-- Improvements -->
           <div class="a-card" id="card-improve">
-            <h4>How to Improve</h4>
+            <h4><span class="a-dot a-dot-moss"></span>How to Improve</h4>
             <ul id="improvements-list" class="bullet-list moss-list"></ul>
           </div>
-        </div>
 
-        <!-- ---- BODY PANEL ---- -->
-        <div id="panel-body" class="panel hidden">
-          <div id="body-metrics"></div>
+          <!-- Praise (no-issues) state -->
+          <div class="praise-card hidden" id="card-praise">
+            <div class="praise-emoji">🌿</div>
+            <h4 id="praise-title">Nothing to fix here</h4>
+            <p id="praise-body">Looks great. Keep doing what you're doing.</p>
+          </div>
+
+          <!-- Full Swing playback message -->
+          <div class="fullswing-msg hidden" id="card-fullswing">
+            <strong>Full Swing playback</strong>
+            Watch the whole motion uninterrupted. Tap any phase above for a detailed breakdown.
+          </div>
         </div>
 
         <!-- ---- CLUB PANEL ---- -->

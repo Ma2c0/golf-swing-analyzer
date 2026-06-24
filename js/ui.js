@@ -29,9 +29,15 @@ const UIModule = (() => {
   }
 
   function scoreColor(score) {
-    if (score >= 75) return '#3F5F45';
-    if (score >= 55) return '#E5A400';
+    if (score >= 90) return '#3F5F45';
+    if (score >= 70) return '#E5A400';
     return '#D56F55';
+  }
+
+  function scoreTier(score) {
+    if (score >= 90) return 'good';
+    if (score >= 70) return 'mid';
+    return 'bad';
   }
 
   /**
@@ -48,20 +54,96 @@ const UIModule = (() => {
 
     // Default to Swing tab
     document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('.cat-tab[data-cat="swing"]').classList.add('active');
+    const swingTab = document.querySelector('.cat-tab[data-cat="swing"]');
+    if (swingTab) swingTab.classList.add('active');
     document.getElementById('panel-swing').classList.remove('hidden');
-    document.getElementById('panel-body').classList.add('hidden');
-    document.getElementById('panel-club').classList.add('hidden');
+    const panelClub = document.getElementById('panel-club');
+    if (panelClub) panelClub.classList.add('hidden');
 
+    setupAnalysisVideo(result);
     renderSwingPanel(result);
-    renderBodyPanel(result);
     renderClubPanel(result);
+  }
+
+  /**
+   * Set up the Analysis video card. Plays whatever swing video is associated
+   * with the result (if any); otherwise just shows the placeholder gradient.
+   * Center play button hides on play and returns when the video ends.
+   */
+  function setupAnalysisVideo(result) {
+    const video = document.getElementById('a-video');
+    const playBtn = document.getElementById('a-play-btn');
+    const dur = document.getElementById('a-video-duration');
+    if (!video || !playBtn) return;
+
+    // Hook video source if available
+    const src = result.videoUrl || window.__lastSwingVideoUrl || null;
+    if (src && video.src !== src) {
+      video.src = src;
+      video.load();
+    }
+
+    const fmt = (s) => {
+      if (!isFinite(s)) return '0:00';
+      const m = Math.floor(s / 60);
+      const r = Math.floor(s % 60);
+      return m + ':' + String(r).padStart(2, '0');
+    };
+    const refreshDur = () => {
+      if (dur && video.duration) {
+        dur.textContent = fmt(video.currentTime) + ' / ' + fmt(video.duration);
+      }
+    };
+    video.addEventListener('loadedmetadata', refreshDur);
+    video.addEventListener('timeupdate', refreshDur);
+
+    // Reset state
+    playBtn.classList.remove('hidden');
+    video.pause();
+
+    // Remove any previous handlers via cloning
+    const fresh = playBtn.cloneNode(true);
+    playBtn.parentNode.replaceChild(fresh, playBtn);
+    fresh.addEventListener('click', () => {
+      if (!video.src) {
+        // No video to play — just briefly hide the button as a demo cue
+        fresh.classList.add('hidden');
+        setTimeout(() => fresh.classList.remove('hidden'), 1800);
+        return;
+      }
+      fresh.classList.add('hidden');
+      video.currentTime = 0;
+      video.play().catch(() => fresh.classList.remove('hidden'));
+    });
+    video.onended = () => fresh.classList.remove('hidden');
+    video.onpause = () => {
+      if (!video.ended && video.currentTime > 0 && video.currentTime < video.duration) {
+        // user-initiated pause via controls (rare) — leave button hidden if mid-play
+      }
+    };
   }
 
   function renderSwingPanel(result) {
     const phases = result.phases || {};
-    const phaseOrder = ['backswing', 'downswing', 'impact'];
-    const phaseLabels = { backswing: 'Backswing', downswing: 'Downswing', impact: 'Impact' };
+    // 5 real phases + 1 full-swing playback card
+    const phaseOrder = ['setup', 'backswing', 'downswing', 'impact', 'followThrough'];
+    const phaseLabels = {
+      setup: 'Setup',
+      backswing: 'Backswing',
+      downswing: 'Downswing',
+      impact: 'Impact',
+      followThrough: 'Finish'
+    };
+    const phaseImgs = {
+      setup: 'assets/phases/Setup.png',
+      backswing: 'assets/phases/Backswing.png',
+      downswing: 'assets/phases/Downswing.png',
+      impact: 'assets/phases/Impact.png',
+      followThrough: 'assets/phases/Finish.png'
+    };
+
+    // Stash on result for later access in showPhaseDetail
+    result._phaseLabels = phaseLabels;
 
     // Phase cards
     const container = document.getElementById('phase-cards');
@@ -78,21 +160,40 @@ const UIModule = (() => {
     phaseOrder.forEach(key => {
       const data = phases[key];
       if (!data) return;
-      const color = scoreColor(data.score);
-      const isGood = data.score >= 75;
+      const tier = scoreTier(data.score);
       const card = document.createElement('div');
-      card.className = 'p-card' + (key === worstKey ? ' selected' + (isGood ? ' good' : '') : '');
+      card.className = 'p-card' + (key === worstKey ? ' selected' : '');
       card.dataset.phase = key;
       card.innerHTML = `
-        <div class="p-card-figure">${phaseFigureSVG(key, color)}</div>
+        <div class="p-card-figure"><img src="${phaseImgs[key]}" alt="${phaseLabels[key]}"></div>
         <span class="p-card-name">${phaseLabels[key]}</span>
-        <span class="p-card-score" style="color:${color}">${data.score}</span>
+        <span class="p-card-score tier-${tier}">${data.score}</span>
       `;
       container.appendChild(card);
     });
 
+    // Full Swing playback card
+    const fullCard = document.createElement('div');
+    fullCard.className = 'p-card';
+    fullCard.dataset.phase = 'fullSwing';
+    fullCard.innerHTML = `
+      <div class="p-card-figure">
+        <svg class="full-play" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="28" cy="28" r="22"/>
+          <path d="M23 19 L23 37 L38 28 Z" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <span class="p-card-name">Full Swing</span>
+      <span class="p-card-playlabel">play</span>
+    `;
+    container.appendChild(fullCard);
+
+    // Stash phases reference for click handler
+    result._phases = phases;
+    window.__lastAnalysisResult = result;
+
     // Show detail for worst phase
-    showPhaseDetail(worstKey, phases);
+    showPhaseDetail(worstKey, phases, result);
 
     // Issues
     const issuesList = document.getElementById('issues-list');
@@ -118,68 +219,95 @@ const UIModule = (() => {
     });
   }
 
-  function showPhaseDetail(phaseKey, phases) {
+  /** Praise messages per phase when there are no issues. */
+  const PRAISE = {
+    setup: { title: 'Setup is dialed in', body: "Stance, posture, and ball position all look great. Keep doing what you're doing." },
+    backswing: { title: 'Smooth backswing', body: "Shoulder turn and arm path look solid. Repeat this feel." },
+    downswing: { title: 'Great downswing', body: "Hips lead, weight shifts on time. This is the move \u2014 lock it in." },
+    impact: { title: 'Clean impact', body: "Hands ahead, body open, weight forward. Textbook strike." },
+    followThrough: { title: 'Beautiful finish', body: "Balanced, rotated through, hands high. Hold this pose every time." }
+  };
+
+  function showPhaseDetail(phaseKey, phases, result) {
+    const labels = { setup: 'Setup', backswing: 'Backswing', downswing: 'Downswing', impact: 'Impact', followThrough: 'Finish', fullSwing: 'Full Swing' };
+    const el = document.getElementById('phase-detail');
+    const cardIssues = document.getElementById('card-issues');
+    const cardImprove = document.getElementById('card-improve');
+    const cardPraise = document.getElementById('card-praise');
+    const cardFull = document.getElementById('card-fullswing');
+    const phaseTag = document.getElementById('a-video-phase-tag');
+
+    // Update card selection visuals
+    document.querySelectorAll('.p-card').forEach(c => {
+      c.classList.toggle('selected', c.dataset.phase === phaseKey);
+    });
+    if (phaseTag) phaseTag.textContent = labels[phaseKey] || '';
+
+    // ---- FULL SWING ----
+    if (phaseKey === 'fullSwing') {
+      el.classList.add('hidden');
+      if (cardIssues) cardIssues.classList.add('hidden');
+      if (cardImprove) cardImprove.classList.add('hidden');
+      if (cardPraise) cardPraise.classList.add('hidden');
+      if (cardFull) cardFull.classList.remove('hidden');
+      return;
+    }
+
     const data = phases[phaseKey];
     if (!data) return;
 
-    const labels = { setup: 'Setup', backswing: 'Backswing', downswing: 'Downswing', impact: 'Impact', followThrough: 'Follow-through' };
-    const color = scoreColor(data.score);
-    const note = (data.notes && data.notes.length > 0) ? data.notes[0] : 'Looking good. No issues detected.';
+    const tier = scoreTier(data.score);
+    const note = (data.notes && data.notes.length > 0)
+      ? data.notes[0]
+      : 'Looking good. No issues detected for this phase.';
 
-    const el = document.getElementById('phase-detail');
     el.classList.remove('hidden');
     el.innerHTML = `
-      <div class="phase-detail-icon" style="background:${color}15">${heartbeatSVG(color)}</div>
       <div class="phase-detail-body">
-        <div class="phase-detail-title" style="color:${color}">${labels[phaseKey]} ${data.score}</div>
+        <div class="phase-detail-title">${labels[phaseKey]}</div>
         <div class="phase-detail-text">${note}</div>
       </div>
-      <span class="phase-detail-arrow">&rsaquo;</span>
+      <span class="phase-detail-pill tier-${tier}">${data.score}</span>
     `;
 
-    // Update card selection
-    document.querySelectorAll('.p-card').forEach(c => {
-      const isThis = c.dataset.phase === phaseKey;
-      c.classList.toggle('selected', isThis);
-      if (isThis && data.score >= 75) c.classList.add('good');
-      else c.classList.remove('good');
-    });
-  }
+    if (cardFull) cardFull.classList.add('hidden');
 
-  function renderBodyPanel(result) {
-    const container = document.getElementById('body-metrics');
-    container.innerHTML = '';
-
-    const phases = result.phases || {};
-    const metrics = [
-      { label: 'Posture', key: 'setup', aspect: 'Spine angle and stance', max: 100 },
-      { label: 'Rotation', key: 'backswing', aspect: 'Shoulder turn and X-factor', max: 100 },
-      { label: 'Sequence', key: 'downswing', aspect: 'Hip lead and weight shift', max: 100 },
-      { label: 'Stability', key: 'impact', aspect: 'Head and spine at impact', max: 100 },
-      { label: 'Balance', key: 'followThrough', aspect: 'Finish position and weight transfer', max: 100 },
-    ];
-
-    metrics.forEach(m => {
-      const score = phases[m.key]?.score ?? 0;
-      const color = scoreColor(score);
-      const notes = phases[m.key]?.notes || [];
-      const card = document.createElement('div');
-      card.className = 'body-metric-card';
-      let noteHtml = '';
-      if (notes.length > 0) {
-        noteHtml = `<p style="font-size:.72rem;color:#5A5A52;margin-top:.3rem;line-height:1.4">${notes[0]}</p>`;
+    const hasIssues = data.notes && data.notes.length > 0;
+    if (hasIssues) {
+      // Show Issues & Improvements scoped to this phase
+      const issuesList = document.getElementById('issues-list');
+      const improvList = document.getElementById('improvements-list');
+      issuesList.innerHTML = '';
+      data.notes.forEach(txt => {
+        const li = document.createElement('li');
+        li.textContent = txt;
+        issuesList.appendChild(li);
+      });
+      // Use the global improvements list as suggestions until
+      // per-phase suggestions are wired in
+      improvList.innerHTML = '';
+      const improves = (result && result.improvements) ? result.improvements : [];
+      improves.slice(0, 3).forEach(txt => {
+        const li = document.createElement('li');
+        li.textContent = txt;
+        improvList.appendChild(li);
+      });
+      if (cardIssues) cardIssues.classList.remove('hidden');
+      if (cardImprove) cardImprove.classList.remove('hidden');
+      if (cardPraise) cardPraise.classList.add('hidden');
+    } else {
+      // Praise state
+      if (cardIssues) cardIssues.classList.add('hidden');
+      if (cardImprove) cardImprove.classList.add('hidden');
+      if (cardPraise) {
+        const praise = PRAISE[phaseKey] || { title: 'Nothing to fix here', body: "Looks great. Keep doing what you're doing." };
+        const t = document.getElementById('praise-title');
+        const b = document.getElementById('praise-body');
+        if (t) t.textContent = praise.title;
+        if (b) b.textContent = praise.body;
+        cardPraise.classList.remove('hidden');
       }
-      card.innerHTML = `
-        <h4>${m.label}</h4>
-        <div class="metric-row">
-          <span class="metric-label">${m.aspect}</span>
-          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${score}%;background:${color}"></div></div>
-          <span class="metric-val" style="color:${color}">${score}</span>
-        </div>
-        ${noteHtml}
-      `;
-      container.appendChild(card);
-    });
+    }
   }
 
   function renderClubPanel(result) {
@@ -237,5 +365,5 @@ const UIModule = (() => {
     ctx.closePath(); ctx.fill(); ctx.stroke();
   }
 
-  return { setProgress, renderAnalysis, showPhaseDetail, scoreColor, phaseFigureSVG };
+  return { setProgress, renderAnalysis, showPhaseDetail, scoreColor, scoreTier, phaseFigureSVG };
 })();
