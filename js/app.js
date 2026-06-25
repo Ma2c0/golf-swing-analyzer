@@ -8,7 +8,7 @@
   const tabBar    = document.getElementById('tab-bar');
   const railBtns  = document.querySelectorAll('.rail-btn');
   const railSlider = document.getElementById('rail-slider');
-  const fsIds     = new Set(['screen-analyzing']);
+  const fsIds     = new Set(['screen-analyzing', 'screen-upload-preview']);
 
   function showTab(id) {
     document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active', 'fs'));
@@ -373,12 +373,76 @@
     btnWide.classList.remove('hidden');
   }
 
-  // ===== IMPORT VIDEO =====
-  const btnImport = document.getElementById('btn-import');
-  const fileInput = document.getElementById('video-file-input');
+  // ===== IMPORT / UPLOAD VIDEO =====
+  const btnImport     = document.getElementById('btn-import');
+  const fileInput     = document.getElementById('video-file-input');
+  const uploadDrop    = document.getElementById('upload-drop');
+  const errBanner     = document.getElementById('upload-error-banner');
+  const errTitle      = document.getElementById('upload-error-title');
+  const errBody       = document.getElementById('upload-error-body');
+  const modeTabs      = document.getElementById('mode-tabs');
+  const panelCamera   = document.getElementById('mode-panel-camera');
+  const panelUpload   = document.getElementById('mode-panel-upload');
 
+  /** Video constraints */
+  const MAX_SIZE_MB    = 100;
+  const MAX_DURATION_S = 60;
+  const ACCEPTED_TYPES = /^video\/(mp4|quicktime|webm|x-matroska)$/i;
+  const ACCEPTED_EXTS  = /\.(mp4|mov|webm|m4v|mkv)$/i;
+
+  // Current pending upload (file + metadata) awaiting preview/analyze.
+  let pendingUpload = null;
+
+  /** Switch between camera / upload panels. */
+  function setRecordMode(mode) {
+    document.querySelectorAll('#mode-tabs .mode-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.mode === mode);
+    });
+    panelCamera.classList.toggle('hidden', mode !== 'camera');
+    panelUpload.classList.toggle('hidden', mode !== 'upload');
+    if (mode === 'upload') {
+      // Pause the live camera — we don't need it on this panel.
+      if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    } else {
+      // Coming back to camera: re-init preview lazily.
+      startCameraPreview();
+    }
+  }
+  modeTabs.addEventListener('click', e => {
+    const tab = e.target.closest('.mode-tab');
+    if (!tab) return;
+    setRecordMode(tab.dataset.mode);
+  });
+
+  /** Reset error banner + drop-zone copy. */
+  function clearUploadError() {
+    if (errBanner) errBanner.classList.add('hidden');
+    const t = document.getElementById('upload-drop-title');
+    const s = document.getElementById('upload-drop-sub');
+    if (t) t.textContent = 'Choose a video';
+    if (s) s.innerHTML = "Pick a swing video from your phone.<br>We'll check it before analyzing.";
+  }
+  /** Show inline error banner (hard block). */
+  function showUploadError(title, body) {
+    if (!errBanner) return;
+    errTitle.textContent = title;
+    errBody.innerHTML = body;
+    errBanner.classList.remove('hidden');
+    const t = document.getElementById('upload-drop-title');
+    const s = document.getElementById('upload-drop-sub');
+    if (t) t.textContent = 'Try a different video';
+    if (s) s.textContent = 'Pick another swing from your phone.';
+  }
+
+  // Drop-zone click → file picker
+  uploadDrop?.addEventListener('click', () => {
+    clearUploadError();
+    fileInput.value = '';
+    fileInput.click();
+  });
+
+  // Quick-shortcut Import button from the Camera panel → also picks a file
   btnImport.addEventListener('click', () => {
-    // Triggers the system file/photo library picker.
     fileInput.value = '';
     fileInput.click();
   });
@@ -386,11 +450,208 @@
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('video/')) {
-      alert('Please select a video file.');
+    await handleUploadedFile(file);
+  });
+
+  /**
+   * Validate a selected file. On hard-block errors, show banner & stay on upload mode.
+   * On success (or portrait-only soft warning), open the preview screen.
+   */
+  async function handleUploadedFile(file) {
+    clearUploadError();
+
+    // 1. Type check
+    const looksVideo = file.type ? ACCEPTED_TYPES.test(file.type) : ACCEPTED_EXTS.test(file.name);
+    if (!looksVideo) {
+      setRecordMode('upload');
+      showUploadError(
+        'Format not supported',
+        `<em>${escapeHtml(file.name)}</em> isn't a supported video format. Try an <strong>.mp4</strong> or <strong>.mov</strong> file.`
+      );
       return;
     }
+
+    // 2. Size check
+    const sizeMB = file.size / (1024 * 1024);
+    if (sizeMB > MAX_SIZE_MB) {
+      setRecordMode('upload');
+      showUploadError(
+        'This video is too large',
+        `<em>${escapeHtml(file.name)}</em> is <strong>${sizeMB.toFixed(0)} MB</strong> — the limit is <strong>${MAX_SIZE_MB} MB</strong>. Try trimming it or exporting at a lower resolution.`
+      );
+      return;
+    }
+
+    // 3. Probe video metadata (duration, orientation)
+    const probe = await probeVideo(file).catch(err => ({ error: err.message }));
+    if (probe.error) {
+      setRecordMode('upload');
+      showUploadError(
+        "Couldn't read this video",
+        `We couldn't open <em>${escapeHtml(file.name)}</em>. The file may be corrupted or use an unsupported codec.`
+      );
+      return;
+    }
+
+    // 4. Duration check
+    if (probe.duration > MAX_DURATION_S) {
+      setRecordMode('upload');
+      showUploadError(
+        'This video is too long',
+        `<em>${escapeHtml(file.name)}</em> is <strong>${probe.duration.toFixed(0)}s</strong> — the limit is <strong>${MAX_DURATION_S}s</strong>. Trim it to just the swing.`
+      );
+      return;
+    }
+
+    // Passed hard validation → open preview screen
+    pendingUpload = {
+      file,
+      url: URL.createObjectURL(file),
+      duration: probe.duration,
+      width: probe.width,
+      height: probe.height,
+      isPortrait: probe.height > probe.width,
+      sizeMB
+    };
+    openPreviewScreen(pendingUpload);
+  }
+
+  function probeVideo(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.src = url;
+      v.muted = true; v.playsInline = true; v.preload = 'metadata';
+      v.onloadedmetadata = () => {
+        const out = {
+          duration: v.duration || 0,
+          width: v.videoWidth || 0,
+          height: v.videoHeight || 0
+        };
+        URL.revokeObjectURL(url);
+        if (!isFinite(out.duration) || out.duration <= 0) reject(new Error('Bad duration'));
+        else resolve(out);
+      };
+      v.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Video load error')); };
+      setTimeout(() => { URL.revokeObjectURL(url); reject(new Error('Probe timeout')); }, 8000);
+    });
+  }
+
+  function fmtTime(s) {
+    if (!isFinite(s) || s < 0) s = 0;
+    const m = Math.floor(s / 60);
+    const r = Math.floor(s % 60);
+    return m + ':' + String(r).padStart(2, '0');
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    })[c]);
+  }
+
+  /** Populate & show the upload preview screen. */
+  function openPreviewScreen(up) {
+    const v        = document.getElementById('preview-video-el');
+    const playBtn  = document.getElementById('preview-play-btn');
+    const warnBan  = document.getElementById('preview-warn-banner');
+    const orient   = document.getElementById('preview-orient');
+    const orientIcon = document.getElementById('preview-orient-icon');
+    const filePill = document.getElementById('preview-file');
+    const durPill  = document.getElementById('preview-duration');
+    const sizePill = document.getElementById('preview-size');
+    const curEl    = document.getElementById('preview-cur');
+    const durEl    = document.getElementById('preview-dur');
+    const fillEl   = document.getElementById('preview-scrub-fill');
+    const knobEl   = document.getElementById('preview-scrub-knob');
+    const barEl    = document.getElementById('preview-scrub-bar');
+    const analyzeBtn = document.getElementById('preview-analyze-btn');
+
+    if (v.src) URL.revokeObjectURL(v.src);
+    v.src = up.url;
+    v.muted = true;
+    v.playsInline = true;
+    v.load();
+
+    // Metadata chips
+    filePill.textContent = up.file.name;
+    durPill.textContent  = fmtTime(up.duration);
+    sizePill.textContent = up.sizeMB < 1 ? `${(up.sizeMB*1024).toFixed(0)} KB` : `${up.sizeMB.toFixed(1)} MB`;
+
+    if (up.isPortrait) {
+      orient.textContent = 'Portrait ⚠';
+      orient.className = 'info-val warn-text';
+      orientIcon.innerHTML = '<rect x="4" y="1.5" width="8" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/>';
+      warnBan.classList.remove('hidden');
+      analyzeBtn.textContent = 'Analyze Anyway';
+    } else {
+      orient.textContent = 'Landscape ✓';
+      orient.className = 'info-val ok-text';
+      orientIcon.innerHTML = '<rect x="1.5" y="4" width="13" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>';
+      warnBan.classList.add('hidden');
+      analyzeBtn.textContent = 'Analyze Swing';
+    }
+
+    // Reset play UI
+    playBtn.classList.remove('hidden');
+    fillEl.style.width = '0%';
+    knobEl.style.left  = '0%';
+    curEl.textContent  = '0:00';
+    durEl.textContent  = fmtTime(up.duration);
+
+    // Bind play button (replace handler each open)
+    const freshPlay = playBtn.cloneNode(true);
+    playBtn.parentNode.replaceChild(freshPlay, playBtn);
+    freshPlay.addEventListener('click', () => {
+      freshPlay.classList.add('hidden');
+      v.currentTime = 0;
+      v.play().catch(() => freshPlay.classList.remove('hidden'));
+    });
+    v.onended = () => freshPlay.classList.remove('hidden');
+    v.ontimeupdate = () => {
+      if (!v.duration) return;
+      const pct = (v.currentTime / v.duration) * 100;
+      fillEl.style.width = pct + '%';
+      knobEl.style.left  = pct + '%';
+      curEl.textContent  = fmtTime(v.currentTime);
+    };
+
+    // Scrubber click-to-seek
+    barEl.onclick = (e) => {
+      const rect = barEl.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      if (v.duration) v.currentTime = Math.max(0, Math.min(v.duration, v.duration * x));
+    };
+
+    showTab('screen-upload-preview');
+  }
+
+  // Preview screen buttons
+  document.getElementById('preview-analyze-btn').addEventListener('click', async () => {
+    if (!pendingUpload) return;
+    const file = pendingUpload.file;
+    // Stop the preview video before analyzing
+    const pv = document.getElementById('preview-video-el');
+    try { pv.pause(); } catch (_) {}
     await analyzeImportedVideo(file);
+  });
+  document.getElementById('preview-choose-btn').addEventListener('click', () => {
+    if (pendingUpload?.url) URL.revokeObjectURL(pendingUpload.url);
+    pendingUpload = null;
+    showTab('tab-record');
+    setRecordMode('upload');
+    fileInput.value = '';
+    fileInput.click();
+  });
+  document.getElementById('preview-cancel-btn').addEventListener('click', () => {
+    if (pendingUpload?.url) URL.revokeObjectURL(pendingUpload.url);
+    pendingUpload = null;
+    showTab('tab-record');
+  });
+  document.getElementById('upload-preview-back').addEventListener('click', () => {
+    if (pendingUpload?.url) URL.revokeObjectURL(pendingUpload.url);
+    pendingUpload = null;
+    showTab('tab-record');
+    setRecordMode('upload');
   });
 
   /**
@@ -594,6 +855,21 @@
   renderJournal();
 
   // ===== DEMO MODE =====
+  // ?demo=upload  → jump to Record screen with Upload mode active.
+  // ?demo=upload-err → same but pre-fills a hard-block error banner.
+  const _ds = new URLSearchParams(location.search).get('demo');
+  if (_ds === 'upload' || _ds === 'upload-err') {
+    showTab('tab-record');
+    setRecordMode('upload');
+    if (_ds === 'upload-err') {
+      showUploadError(
+        'This video is too large',
+        '<em>swing_practice_4k.mov</em> is <strong>187 MB</strong> — the limit is <strong>100 MB</strong>. Try trimming it or exporting at a lower resolution.'
+      );
+    }
+    return;
+  }
+
   // Visit index.html?demo to jump straight into a populated Analysis screen.
   if (location.search.includes('demo')) {
     const demo = {

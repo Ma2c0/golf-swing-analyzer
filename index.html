@@ -33,6 +33,27 @@
         </button>
       </header>
 
+      <!-- Camera / Upload mode tabs -->
+      <div class="mode-tabs" id="mode-tabs">
+        <button class="mode-tab active" data-mode="camera">
+          <svg viewBox="0 0 16 16" fill="none">
+            <rect x="1.5" y="4" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+            <circle cx="8" cy="8.5" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M5.5 4 L6.5 2.5 L9.5 2.5 L10.5 4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+          Camera
+        </button>
+        <button class="mode-tab" data-mode="upload">
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="M8 11 L8 3 M5 6 L8 3 L11 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.5 10 L2.5 13 A1 1 0 0 0 3.5 14 L12.5 14 A1 1 0 0 0 13.5 13 L13.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Upload
+        </button>
+      </div>
+
+      <!-- ===== CAMERA MODE PANEL ===== -->
+      <div id="mode-panel-camera" class="mode-panel">
       <!-- Camera / Club Options -->
       <div class="record-options">
         <div class="record-view-tabs">
@@ -140,6 +161,134 @@
         </button>
       </div>
       <p class="rec-hint">Place phone behind the ball, aligned with your target line. Tap record and swing.</p>
+      </div><!-- /mode-panel-camera -->
+
+      <!-- ===== UPLOAD MODE PANEL ===== -->
+      <div id="mode-panel-upload" class="mode-panel hidden">
+        <!-- Inline error banner (hard block) -->
+        <div id="upload-error-banner" class="error-banner hidden">
+          <div class="err-icon">
+            <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M7 4v3.5M7 10h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="err-text">
+            <strong id="upload-error-title">Something went wrong</strong>
+            <span id="upload-error-body"></span>
+          </div>
+        </div>
+
+        <!-- Drop zone -->
+        <button id="upload-drop" class="upload-drop">
+          <div class="upload-icon-wrap">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M16 22 L16 8 M10 14 L16 8 L22 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6 22 L6 26 A2 2 0 0 0 8 28 L24 28 A2 2 0 0 0 26 26 L26 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 id="upload-drop-title">Choose a video</h3>
+          <p class="upload-sub" id="upload-drop-sub">Pick a swing video from your phone.<br>We'll check it before analyzing.</p>
+        </button>
+
+        <!-- Requirements card -->
+        <div class="req-card">
+          <h4>
+            <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M7 4v3.5M7 10h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            For best results
+          </h4>
+          <ul class="req-list">
+            <li><strong>Down-the-line</strong> camera angle (behind the ball, target line ahead)</li>
+            <li><strong>Landscape</strong> orientation — portrait videos will be cropped</li>
+            <li>Under <strong>60 seconds</strong>, max <strong>100 MB</strong></li>
+            <li>Full body in frame, good lighting</li>
+          </ul>
+        </div>
+      </div><!-- /mode-panel-upload -->
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: UPLOAD PREVIEW (fullscreen) ===== -->
+  <div id="screen-upload-preview" class="tab-screen">
+    <div class="tab-scroll">
+      <header class="screen-header">
+        <button class="header-icon-btn header-back" id="upload-preview-back">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 16l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 class="screen-title">Preview</h2>
+        <button class="header-icon-btn"></button>
+      </header>
+
+      <!-- Video player -->
+      <div class="preview-video">
+        <video id="preview-video-el" class="preview-video-el" playsinline preload="metadata"></video>
+        <div class="preview-video-overlay"></div>
+        <button id="preview-play-btn" class="preview-play-btn" aria-label="Play"></button>
+        <div class="preview-scrub">
+          <span id="preview-cur">0:00</span>
+          <div class="scrub-bar" id="preview-scrub-bar">
+            <div class="scrub-fill" id="preview-scrub-fill"></div>
+            <div class="scrub-knob" id="preview-scrub-knob"></div>
+          </div>
+          <span id="preview-dur">0:00</span>
+        </div>
+      </div>
+
+      <!-- Portrait soft warning (shown only when applicable) -->
+      <div id="preview-warn-banner" class="warn-banner hidden">
+        <div class="warn-icon">!</div>
+        <div class="warn-text">
+          <strong>Portrait video detected</strong>
+          For best results, record landscape next time. You can still analyze this one, but accuracy may drop.
+        </div>
+      </div>
+
+      <!-- Info chips -->
+      <div class="info-chips">
+        <div class="info-chip">
+          <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 6 L10 8 L6 10 Z" fill="currentColor"/></svg>
+          <div class="info-text">
+            <span class="info-label">File</span>
+            <span class="info-val" id="preview-file">—</span>
+          </div>
+        </div>
+        <div class="info-chip">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <div class="info-text">
+            <span class="info-label">Duration</span>
+            <span class="info-val" id="preview-duration">—</span>
+          </div>
+        </div>
+        <div class="info-chip">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 4 L13 4 M3 8 L13 8 M3 12 L9 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <div class="info-text">
+            <span class="info-label">Size</span>
+            <span class="info-val" id="preview-size">—</span>
+          </div>
+        </div>
+        <div class="info-chip">
+          <svg id="preview-orient-icon" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="4" width="13" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
+          <div class="info-text">
+            <span class="info-label">Orientation</span>
+            <span class="info-val" id="preview-orient">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DTL reminder -->
+      <div class="reminder-card">
+        <div class="reminder-icon">
+          <svg viewBox="0 0 14 14" fill="none"><path d="M7 1 L7 13 M2 7 L7 1 L12 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="reminder-text">
+          <strong>Down-the-line view recommended</strong>
+          Camera behind the ball, looking down your target line. Other angles work but accuracy drops.
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="upload-action-stack">
+        <button id="preview-analyze-btn" class="btn btn-primary btn-block">Analyze Swing</button>
+        <button id="preview-choose-btn" class="btn btn-secondary btn-block">Choose Another Video</button>
+        <button id="preview-cancel-btn" class="btn-tertiary">Cancel</button>
+      </div>
     </div>
   </div>
 
