@@ -623,31 +623,48 @@
     const fillEl   = document.getElementById('preview-scrub-fill');
     const knobEl   = document.getElementById('preview-scrub-knob');
     const barEl    = document.getElementById('preview-scrub-bar');
-    const analyzeBtn = document.getElementById('preview-analyze-btn');
+    // Preview now has TWO analyze buttons (mark/analyze + quick analyze).
+    const markAnalyzeBtn  = document.getElementById('preview-mark-analyze-btn');
+    const quickAnalyzeBtn = document.getElementById('preview-quick-analyze-btn');
 
-    if (v.src) URL.revokeObjectURL(v.src);
-    v.src = up.url;
-    v.muted = true;
-    v.playsInline = true;
-    v.load();
+    // Don’t revoke the existing src — the blob URL is shared across screens
+    // (Preview → Mark Ball → Analysis). It only gets cleaned up when the user
+    // truly abandons the upload via Cancel/Choose Another.
+    if (v.src !== up.url) {
+      v.src = up.url;
+      v.muted = true;
+      v.playsInline = true;
+      v.load();
+    }
 
     // Metadata chips
     filePill.textContent = up.file.name;
     durPill.textContent  = fmtTime(up.duration);
     sizePill.textContent = up.sizeMB < 1 ? `${(up.sizeMB*1024).toFixed(0)} KB` : `${up.sizeMB.toFixed(1)} MB`;
 
+    // Update button label nuance for portrait videos.
+    const setMarkAnalyzeLabel = (txt, sub) => {
+      if (!markAnalyzeBtn) return;
+      markAnalyzeBtn.innerHTML = txt + '<span class="btn-sub">' + sub + '</span>';
+    };
+    const setQuickAnalyzeLabel = (txt, sub) => {
+      if (!quickAnalyzeBtn) return;
+      quickAnalyzeBtn.innerHTML = txt + '<span class="btn-sub">' + sub + '</span>';
+    };
     if (up.isPortrait) {
       orient.textContent = 'Portrait ⚠';
       orient.className = 'info-val warn-text';
       orientIcon.innerHTML = '<rect x="4" y="1.5" width="8" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/>';
       warnBan.classList.remove('hidden');
-      analyzeBtn.textContent = 'Analyze Anyway';
+      setMarkAnalyzeLabel('Mark ball &amp; analyze anyway', 'Portrait · accuracy may drop');
+      setQuickAnalyzeLabel('Analyze anyway', 'Portrait · ball tracking may fail');
     } else {
       orient.textContent = 'Landscape ✓';
       orient.className = 'info-val ok-text';
       orientIcon.innerHTML = '<rect x="1.5" y="4" width="13" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/>';
       warnBan.classList.add('hidden');
-      analyzeBtn.textContent = 'Analyze Swing';
+      setMarkAnalyzeLabel('Mark ball &amp; analyze', 'Recommended · most accurate ball tracking');
+      setQuickAnalyzeLabel('Analyze without marking', 'Faster · ball tracking may be unavailable');
     }
 
     // Reset play UI
