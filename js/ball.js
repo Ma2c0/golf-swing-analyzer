@@ -39,10 +39,13 @@ const BallTrackModule = (() => {
   const G_METRES = 9.81;                 // gravity
 
   // Detection tunables
-  const ROI_PADDING_NORM = 0.10;
+  const ROI_PADDING_NORM = 0.18;   // was 0.10 鈥?widen club-head ROI
   const BRIGHT_THRESHOLD = 200;
   const MIN_BLOB_PIX     = 4;
   const MAX_BLOB_PIX     = 240;
+  // Ball sanity filter: must sit in the lower portion of the frame so white
+  // shoes / gloves / caps higher up don't poison the search.
+  const MIN_Y_FOR_BALL   = 0.45;   // normalized 鈥?ball must be below this Y
 
   // Forward tracking
   const MAX_FORWARD_FRAMES = 18;         // how many post-anchor frames to scan
@@ -61,7 +64,7 @@ const BallTrackModule = (() => {
    * @param {function} onProgress    0..1
    * @returns {Promise<Object>}
    */
-  async function track(videoEl, frames, phases, onProgress) {
+  async function track(videoEl, frames, phases, onProgress, opts) {
     if (!videoEl || !videoEl.duration || !frames || frames.length === 0 || !phases) {
       return { tracked: false, reason: 'missing-inputs' };
     }
@@ -72,29 +75,59 @@ const BallTrackModule = (() => {
     cv.width = w; cv.height = h;
     const ctx = cv.getContext('2d', { willReadFrequently: true });
 
-    // ---- Step 1: scan ALL frames to find the first one with a ball ----
-    // We don\u2019t insist on the Setup frame \u2014 any frame where we can spot
-    // the ball inside a sensible ROI is good enough as an anchor.
+    // ---- Step 1: anchor (manual hint first, else scan frames) ----
     let anchor = null;
     let anyRoiHadFrame = false;
     const N = frames.length;
-    for (let i = 0; i < N; i++) {
-      const t = frameTime(frames[i]);
-      if (!isFinite(t)) continue;
-      const rois = candidateRois(frames[i], w, h);
-      if (rois.length === 0) continue;
-      anyRoiHadFrame = true;
-      await seekVideo(videoEl, t);
-      ctx.drawImage(videoEl, 0, 0, w, h);
-      for (const roi of rois) {
-        const blob = findBrightBlob(ctx, roi);
-        if (blob) {
-          anchor = { idx: i, t, x: blob.x / w, y: blob.y / h, pixR: blob.radius };
-          break;
+
+    if (opts && opts.manualAnchor) {
+      // User clicked the ball position. Map to nearest pose frame for timing.
+      const m = opts.manualAnchor;
+      let bestIdx = phases.setupEnd | 0;
+      if (typeof m.t === 'number' && isFinite(m.t)) {
+        let bestDt = Infinity;
+        for (let i = 0; i < N; i++) {
+          const ft = frameTime(frames[i]);
+          if (!isFinite(ft)) continue;
+          const d = Math.abs(ft - m.t);
+          if (d < bestDt) { bestDt = d; bestIdx = i; }
         }
       }
-      if (anchor) break;
-      if (onProgress && (i % 4 === 0)) onProgress(i / (N + EXTRAP_MAX_FRAMES));
+      const t = frameTime(frames[bestIdx]);
+      await seekVideo(videoEl, isFinite(t) ? t : (videoEl.currentTime || 0));
+      ctx.drawImage(videoEl, 0, 0, w, h);
+      const cx = m.x * w, cy = m.y * h;
+      const half = Math.max(30, w * 0.05);
+      const roi  = clampRect({ x: cx - half, y: cy - half, w: half * 2, h: half * 2 }, w, h);
+      let pixR = 5;
+      if (roi) {
+        const blob = findBrightBlob(ctx, roi);
+        if (blob) anchor = { idx: bestIdx, t, x: blob.x / w, y: blob.y / h, pixR: blob.radius };
+      }
+      if (!anchor) anchor = { idx: bestIdx, t, x: m.x, y: m.y, pixR };
+      anyRoiHadFrame = true;
+    } else {
+      // Auto mode 鈥?try Setup鈫扵op window first (ball stationary), then rest.
+      const order = autoScanOrder(N, phases);
+      for (let oi = 0; oi < order.length; oi++) {
+        const i = order[oi];
+        const t = frameTime(frames[i]);
+        if (!isFinite(t)) continue;
+        const rois = candidateRois(frames[i], w, h);
+        if (rois.length === 0) continue;
+        anyRoiHadFrame = true;
+        await seekVideo(videoEl, t);
+        ctx.drawImage(videoEl, 0, 0, w, h);
+        for (const roi of rois) {
+          const blob = findBrightBlob(ctx, roi);
+          if (blob) {
+            anchor = { idx: i, t, x: blob.x / w, y: blob.y / h, pixR: blob.radius };
+            break;
+          }
+        }
+        if (anchor) break;
+        if (onProgress && (oi % 4 === 0)) onProgress(oi / (order.length + EXTRAP_MAX_FRAMES));
+      }
     }
 
     // ---- Step 2: forward tracking from anchor ----
@@ -251,49 +284,88 @@ const BallTrackModule = (() => {
   }
 
   /**
-   * Two candidate ROIs per frame: club-head projection (DTL) and
-   * between-the-feet ground area (face-on; also useful for DTL).
+   * Candidate ROIs per frame:
+   *   1. wider club-head projection (DTL / forward)
+   *   2. between-the-feet ground area (face-on)
+   *   3. full lower half of the frame (catch-all, last resort)
+   *
+   * All blobs are post-filtered to the lower portion of the frame
+   * (y > MIN_Y_FOR_BALL) so white shoes / gloves / caps higher in the
+   * image can't pollute results.
    */
   function candidateRois(frame, w, h) {
     const out = [];
     const lm = frame && frame.landmarks;
-    if (!lm) return out;
-    const LW = lm[15], RW = lm[16], LE = lm[13], RE = lm[14];
-    const LA = lm[27], RA = lm[28];
-    const LK = lm[25], RK = lm[26];
     const pad = ROI_PADDING_NORM * Math.max(w, h);
 
-    if (LW && RW && LE && RE
-        && (LW.visibility ?? 0) >= 0.3 && (RW.visibility ?? 0) >= 0.3) {
-      const wristX = (LW.x + RW.x) / 2, wristY = (LW.y + RW.y) / 2;
-      const elbowX = (LE.x + RE.x) / 2, elbowY = (LE.y + RE.y) / 2;
-      const dx = wristX - elbowX, dy = wristY - elbowY;
-      const len = Math.hypot(dx, dy);
-      if (len >= 0.01) {
-        const headX = wristX + (dx / len) * 0.40;
-        const headY = wristY + (dy / len) * 0.40;
-        const r = clampRect({ x: headX * w - pad, y: (headY + 0.02) * h - pad, w: pad * 2, h: pad * 2 }, w, h);
+    if (lm) {
+      const LW = lm[15], RW = lm[16], LE = lm[13], RE = lm[14];
+      const LA = lm[27], RA = lm[28];
+      const LK = lm[25], RK = lm[26];
+
+      // ROI 1 鈥?club head projection (wider, biased further down the shaft)
+      if (LW && RW && LE && RE
+          && (LW.visibility ?? 0) >= 0.3 && (RW.visibility ?? 0) >= 0.3) {
+        const wristX = (LW.x + RW.x) / 2, wristY = (LW.y + RW.y) / 2;
+        const elbowX = (LE.x + RE.x) / 2, elbowY = (LE.y + RE.y) / 2;
+        const dx = wristX - elbowX, dy = wristY - elbowY;
+        const len = Math.hypot(dx, dy);
+        if (len >= 0.01) {
+          // 0.55 (was 0.40) 鈥?push ROI further along the shaft toward the ball
+          const headX = wristX + (dx / len) * 0.55;
+          const headY = wristY + (dy / len) * 0.55;
+          const r = clampRect({ x: headX * w - pad, y: (headY + 0.04) * h - pad, w: pad * 2, h: pad * 2 }, w, h);
+          if (r) out.push(r);
+        }
+      }
+
+      // ROI 2 鈥?between/around the feet at ground level
+      let footL = null, footR = null;
+      if (LA && RA && (LA.visibility ?? 0) >= 0.25 && (RA.visibility ?? 0) >= 0.25) {
+        footL = LA; footR = RA;
+      } else if (LK && RK && (LK.visibility ?? 0) >= 0.25 && (RK.visibility ?? 0) >= 0.25) {
+        footL = LK; footR = RK;
+      }
+      if (footL && footR) {
+        const midX = (footL.x + footR.x) / 2;
+        const midY = (footL.y + footR.y) / 2;
+        const stance = Math.abs(footL.x - footR.x);
+        const halfW = Math.max(pad, Math.min(stance * w * 0.9, w * 0.22));
+        const halfH = Math.max(pad, h * 0.12);
+        const r = clampRect({ x: midX * w - halfW, y: (midY + 0.03) * h - halfH, w: halfW * 2, h: halfH * 2 }, w, h);
         if (r) out.push(r);
       }
     }
 
-    let footL = null, footR = null;
-    if (LA && RA && (LA.visibility ?? 0) >= 0.25 && (RA.visibility ?? 0) >= 0.25) {
-      footL = LA; footR = RA;
-    } else if (LK && RK && (LK.visibility ?? 0) >= 0.25 && (RK.visibility ?? 0) >= 0.25) {
-      footL = LK; footR = RK;
-    }
-    if (footL && footR) {
-      const midX = (footL.x + footR.x) / 2;
-      const midY = (footL.y + footR.y) / 2;
-      const stance = Math.abs(footL.x - footR.x);
-      const halfW = Math.max(pad, Math.min(stance * w * 0.7, w * 0.18));
-      const halfH = Math.max(pad, h * 0.10);
-      const r = clampRect({ x: midX * w - halfW, y: (midY + 0.03) * h - halfH, w: halfW * 2, h: halfH * 2 }, w, h);
+    // ROI 3 鈥?catch-all: lower 55% of the image (ground area).
+    {
+      const yStart = Math.floor(h * MIN_Y_FOR_BALL);
+      const r = clampRect({ x: 0, y: yStart, w: w, h: h - yStart }, w, h);
       if (r) out.push(r);
     }
 
     return out;
+  }
+
+  /**
+   * Frame index order for automatic ball search. Stationary window
+   * (Setup 鈫?Top) has the highest signal-to-noise for a small ball.
+   */
+  function autoScanOrder(N, phases) {
+    const list = [];
+    const seen = new Set();
+    const push = (i) => {
+      const j = Math.max(0, Math.min(N - 1, i));
+      if (!seen.has(j)) { seen.add(j); list.push(j); }
+    };
+    const sE = phases.setupEnd | 0;
+    const top = phases.top | 0;
+    const imp = phases.impactFrame | 0;
+    for (let i = sE; i >= 0; i--) push(i);
+    for (let i = sE + 1; i <= top; i++) push(i);
+    for (let i = top + 1; i <= imp; i++) push(i);
+    for (let i = imp + 1; i < N; i++) push(i);
+    return list;
   }
 
   function clampRect(r, w, h) {
@@ -350,19 +422,31 @@ const BallTrackModule = (() => {
         const bh = maxY - minY + 1;
         const aspect = bw / Math.max(1, bh);
         if (aspect < 0.4 || aspect > 2.5) continue;
+        const centroidY = roi.y + sumY / count;
+        // Reject blobs above the ground threshold 鈥?these are almost
+        // certainly white clothing (shoes, gloves, hat), not the ball.
+        // Only applied during the initial search (no `lastBall` reference);
+        // once we are tracking, the previous-position bias is enough.
+        const fullH = ctx.canvas.height;
+        if (!lastBall && centroidY / fullH < MIN_Y_FOR_BALL) continue;
         blobs.push({
           x: roi.x + sumX / count,
-          y: roi.y + sumY / count,
+          y: centroidY,
           radius: Math.sqrt(count / Math.PI),
           count
         });
       }
     }
     if (blobs.length === 0) return null;
+    const fullH = ctx.canvas.height;
     blobs.sort((a, b) => {
       if (lastBall) {
         return Math.abs(a.radius - lastBall.pixR) - Math.abs(b.radius - lastBall.pixR);
       }
+      // Prefer blobs lower in the frame (ball sits on ground), then size
+      // close to typical ball radius.
+      const ya = a.y / fullH, yb = b.y / fullH;
+      if (Math.abs(yb - ya) > 0.05) return yb - ya;
       return Math.abs(a.radius - 6) - Math.abs(b.radius - 6);
     });
     return blobs[0];

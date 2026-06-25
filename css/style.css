@@ -740,6 +740,124 @@ html, body {
 }
 .ball-status.mood-soft > svg { color: var(--moss); }
 .ball-status.mood-soft .ball-status-text strong { color: #2D4632; }
+
+/* CTA inside ball-status banner */
+.ball-mark-btn {
+  display: inline-block;
+  margin-top: .5rem;
+  padding: .45rem .9rem;
+  border-radius: 100px;
+  background: var(--moss);
+  color: var(--cream);
+  border: none;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ball-mark-btn:hover { background: var(--moss-deep, #2D4632); }
+.ball-mark-btn.hidden { display: none; }
+
+/* =====================================================
+   MARK-BALL SCREEN
+   ===================================================== */
+#screen-mark-ball { background: var(--cream); }
+.mark-ball-content {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 1rem 1.1rem 1.2rem;
+  height: 100%;
+  overflow: hidden;
+}
+.mark-ball-header {
+  display: grid; grid-template-columns: 36px 1fr 36px; align-items: center;
+  margin-bottom: .4rem;
+}
+.mark-ball-title {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 1.3rem; font-weight: 400; text-align: center;
+  color: var(--ink);
+}
+.mark-ball-instr {
+  text-align: center; font-size: .82rem; color: var(--text2);
+  line-height: 1.45;
+  margin-bottom: .9rem;
+}
+.mark-ball-stage {
+  position: relative;
+  flex: 1;
+  background: #000;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  cursor: crosshair;
+  margin-bottom: .8rem;
+  min-height: 0;
+}
+#mark-ball-video {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+#mark-ball-overlay {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.mark-ball-scrub {
+  display: flex; align-items: center; gap: .55rem;
+  margin-bottom: .35rem;
+}
+.mark-ball-step-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--warm);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--moss);
+  flex-shrink: 0;
+}
+.mark-ball-step-btn:active { transform: scale(0.95); }
+.mark-ball-step-btn svg { width: 14px; height: 14px; }
+#mark-ball-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none; appearance: none;
+  background: var(--line);
+  border-radius: 100px;
+  outline: none;
+}
+#mark-ball-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px;
+  background: var(--moss);
+  border: 2px solid var(--cream);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+#mark-ball-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  background: var(--moss);
+  border: 2px solid var(--cream);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.mark-ball-time {
+  text-align: center;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text3);
+  margin-bottom: .8rem;
+}
+.mark-ball-actions .btn-block {
+  margin: 0;
+  max-width: none;
+}
+.mark-ball-actions .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .a-video-duration {
   position: absolute;
   bottom: 12px; right: 12px;

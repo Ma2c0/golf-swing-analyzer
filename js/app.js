@@ -8,7 +8,7 @@
   const tabBar    = document.getElementById('tab-bar');
   const railBtns  = document.querySelectorAll('.rail-btn');
   const railSlider = document.getElementById('rail-slider');
-  const fsIds     = new Set(['screen-analyzing', 'screen-upload-preview']);
+  const fsIds     = new Set(['screen-analyzing', 'screen-upload-preview', 'screen-mark-ball']);
 
   function showTab(id) {
     document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active', 'fs'));
@@ -875,6 +875,102 @@
     showTab('tab-analysis');
   }
 
+  /* ===== Manual ball marking ===== */
+  let _markBallPoint = null;
+
+  function openMarkBallScreen() {
+    const inputs = window.__lastTrackInputs;
+    if (!inputs || !inputs.videoUrl) {
+      alert('Video no longer available. Please re-upload.');
+      return;
+    }
+    const v = document.getElementById('mark-ball-video');
+    if (v.src !== inputs.videoUrl) {
+      v.src = inputs.videoUrl;
+      v.load();
+    }
+    _markBallPoint = null;
+    document.getElementById('mark-ball-confirm').disabled = true;
+    drawMarkBallOverlay();
+    showTab('screen-mark-ball');
+    setTimeout(drawMarkBallOverlay, 100);
+  }
+  function closeMarkBallScreen() {
+    const v = document.getElementById('mark-ball-video');
+    try { v.pause(); } catch (_) {}
+  }
+  function drawMarkBallOverlay() {
+    const c = document.getElementById('mark-ball-overlay');
+    const v = document.getElementById('mark-ball-video');
+    if (!c || !v) return;
+    const rect = v.getBoundingClientRect();
+    c.width  = rect.width  * (window.devicePixelRatio || 1);
+    c.height = rect.height * (window.devicePixelRatio || 1);
+    c.style.width  = rect.width  + 'px';
+    c.style.height = rect.height + 'px';
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    if (!_markBallPoint) return;
+    const vw = v.videoWidth || rect.width;
+    const vh = v.videoHeight || rect.height;
+    const s  = Math.min(rect.width / vw, rect.height / vh);
+    const rw = vw * s, rh = vh * s;
+    const ox = (rect.width - rw) / 2;
+    const oy = (rect.height - rh) / 2;
+    const dpr = window.devicePixelRatio || 1;
+    const px = (ox + _markBallPoint.x * rw) * dpr;
+    const py = (oy + _markBallPoint.y * rh) * dpr;
+    ctx.save();
+    ctx.strokeStyle = '#D56F55';
+    ctx.lineWidth = 2 * dpr;
+    ctx.shadowColor = 'rgba(213,111,85,0.8)';
+    ctx.shadowBlur = 10 * dpr;
+    ctx.beginPath();
+    ctx.arc(px, py, 18 * dpr, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(px, py, 4 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = '#D56F55';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  async function runManualBallTrack(point) {
+    const inputs = window.__lastTrackInputs;
+    if (!inputs || !point) return;
+    showTab('screen-analyzing');
+    UIModule.setLoaderStep('ball');
+    UIModule.setProgress(60, 'Re-tracking with your mark…');
+    try {
+      const tv = document.createElement('video');
+      tv.src = inputs.videoUrl;
+      tv.muted = true; tv.playsInline = true; tv.crossOrigin = 'anonymous';
+      await new Promise(res => { tv.onloadedmetadata = () => res(); tv.onerror = () => res(); });
+      const ball = await BallTrackModule.track(
+        tv,
+        inputs.frames,
+        inputs.rawPhases,
+        (p) => UIModule.setProgress(60 + Math.floor(p * 30), 'Tracking ball flight…'),
+        { manualAnchor: point }
+      );
+      UIModule.setProgress(95, 'Scoring impact…');
+      if (currentResult) {
+        currentResult.ball = ball;
+        const swings = getSwings();
+        if (swings.length > 0) {
+          swings[0].ball = ball;
+          localStorage.setItem('birdie_swings', JSON.stringify(swings));
+        }
+        UIModule.renderAnalysis(currentResult);
+      }
+      UIModule.setProgress(100, 'Done');
+      await sleep(200);
+    } catch (e) {
+      console.warn('Manual ball track failed:', e);
+    }
+    showTab('tab-analysis');
+  }
+
   /**
    * Show the low-confidence modal and resolve(true) on Continue, false on Choose Another.
    */
@@ -1011,6 +1107,82 @@
     };
   }
   renderJournal();
+
+  // ===== MANUAL BALL MARKING =====
+  // Wire "Tap to mark ball" CTA on Analysis ball-status banner.
+  const ballMarkBtn = document.getElementById('ball-mark-btn');
+  if (ballMarkBtn) {
+    ballMarkBtn.addEventListener('click', () => openMarkBallScreen());
+  }
+  const mbBack = document.getElementById('mark-ball-back');
+  if (mbBack) {
+    mbBack.addEventListener('click', () => {
+      closeMarkBallScreen();
+      showTab('tab-analysis');
+    });
+    document.getElementById('mark-ball-redo').addEventListener('click', () => {
+      _markBallPoint = null;
+      drawMarkBallOverlay();
+      document.getElementById('mark-ball-confirm').disabled = true;
+    });
+    const mbVideo = document.getElementById('mark-ball-video');
+    const mbSlider = document.getElementById('mark-ball-slider');
+    const mbPrev   = document.getElementById('mark-ball-prev');
+    const mbNext   = document.getElementById('mark-ball-next');
+    const mbTime   = document.getElementById('mark-ball-time');
+    const mbStage  = document.getElementById('mark-ball-stage');
+    const mbConfirm = document.getElementById('mark-ball-confirm');
+
+    const fmtSec = (s) => {
+      if (!isFinite(s)) return '0:00';
+      const m = Math.floor(s / 60), r = Math.floor(s % 60);
+      return m + ':' + String(r).padStart(2, '0');
+    };
+    const refreshMbTime = () => {
+      if (mbTime && mbVideo.duration)
+        mbTime.textContent = `${fmtSec(mbVideo.currentTime)} / ${fmtSec(mbVideo.duration)}`;
+    };
+    mbVideo.addEventListener('loadedmetadata', () => {
+      mbSlider.max = mbVideo.duration || 0;
+      // Start near setupEnd if we have phase info
+      const inputs = window.__lastTrackInputs;
+      if (inputs && inputs.rawPhases && inputs.frames) {
+        const f = inputs.frames[Math.min(inputs.rawPhases.setupEnd | 0, inputs.frames.length - 1)];
+        if (f && f.videoTime != null) mbVideo.currentTime = f.videoTime;
+      }
+      refreshMbTime();
+      drawMarkBallOverlay();
+    });
+    mbVideo.addEventListener('timeupdate', refreshMbTime);
+    mbVideo.addEventListener('seeked', refreshMbTime);
+    mbSlider.addEventListener('input', () => {
+      try { mbVideo.currentTime = parseFloat(mbSlider.value); } catch (_) {}
+    });
+    const STEP = 1 / 30;
+    mbPrev.addEventListener('click', () => {
+      try { mbVideo.currentTime = Math.max(0, mbVideo.currentTime - STEP); } catch (_) {}
+    });
+    mbNext.addEventListener('click', () => {
+      try { mbVideo.currentTime = Math.min(mbVideo.duration || 0, mbVideo.currentTime + STEP); } catch (_) {}
+    });
+    mbStage.addEventListener('click', (e) => {
+      const rect = mbVideo.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const vw = mbVideo.videoWidth  || rect.width;
+      const vh = mbVideo.videoHeight || rect.height;
+      const s  = Math.min(rect.width / vw, rect.height / vh);
+      const rw = vw * s, rh = vh * s;
+      const ox = (rect.width - rw) / 2;
+      const oy = (rect.height - rh) / 2;
+      const px = cx - ox, py = cy - oy;
+      if (px < 0 || py < 0 || px > rw || py > rh) return;
+      _markBallPoint = { x: px / rw, y: py / rh, t: mbVideo.currentTime };
+      drawMarkBallOverlay();
+      mbConfirm.disabled = false;
+    });
+    mbConfirm.addEventListener('click', () => runManualBallTrack(_markBallPoint));
+  }
 
   // ===== DEMO MODE =====
   // ?demo=upload     → Upload mode entry

@@ -413,6 +413,7 @@
           <div class="ball-status-text">
             <strong id="ball-status-title">Ball not tracked</strong>
             <span id="ball-status-body"></span>
+            <button id="ball-mark-btn" class="ball-mark-btn hidden">Tap to mark ball</button>
           </div>
         </div>
 
@@ -487,6 +488,43 @@
         <div class="step-row" data-step="phases"><span class="step-icon"></span>Finding swing phases</div>
         <div class="step-row" data-step="ball"><span class="step-icon"></span>Tracking ball flight</div>
         <div class="step-row" data-step="score"><span class="step-icon"></span>Scoring impact</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: MANUAL BALL MARKING (fullscreen) ===== -->
+  <div id="screen-mark-ball" class="tab-screen">
+    <div class="mark-ball-content">
+      <header class="mark-ball-header">
+        <button id="mark-ball-back" class="header-icon-btn">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 16l-6-6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 class="mark-ball-title">Tap the ball</h2>
+        <button id="mark-ball-redo" class="header-icon-btn" title="Reset">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10a6 6 0 1 0 1.76-4.24M4 5v4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </header>
+
+      <p class="mark-ball-instr">Find a frame where the ball is clearly visible, then tap on it.</p>
+
+      <div class="mark-ball-stage" id="mark-ball-stage">
+        <video id="mark-ball-video" playsinline preload="auto" muted></video>
+        <canvas id="mark-ball-overlay"></canvas>
+      </div>
+
+      <div class="mark-ball-scrub">
+        <button id="mark-ball-prev" class="mark-ball-step-btn" title="Previous frame">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M10 4l-4 4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <input id="mark-ball-slider" type="range" min="0" max="100" value="0" step="0.5">
+        <button id="mark-ball-next" class="mark-ball-step-btn" title="Next frame">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="mark-ball-time" id="mark-ball-time">0:00 / 0:00</div>
+
+      <div class="mark-ball-actions">
+        <button id="mark-ball-confirm" class="btn btn-primary btn-block" disabled>Confirm ball position</button>
       </div>
     </div>
   </div>
