@@ -64,7 +64,7 @@ const BallTrackModule = (() => {
    * @param {function} onProgress    0..1
    * @returns {Promise<Object>}
    */
-  async function track(videoEl, frames, phases, onProgress, opts) {
+  async function trackInner(videoEl, frames, phases, onProgress, opts) {
     if (!videoEl || !videoEl.duration || !frames || frames.length === 0 || !phases) {
       return { tracked: false, reason: 'missing-inputs' };
     }
@@ -129,53 +129,56 @@ const BallTrackModule = (() => {
     }
 
     // ---- Step 2: forward tracking from anchor ----
-    let trajectory = [];      // real-detected ball positions
+    // Manual anchors SKIP forward tracking entirely - we already trust the
+    // user-clicked point and let physics handle the rest. Forward tracking
+    // is also brittle on small/uploaded videos where it can throw on
+    // damaged seek/decode states.
+    let trajectory = [];
     if (anchor) {
       trajectory.push({ x: anchor.x, y: anchor.y, t: anchor.t, pixR: anchor.pixR });
-      let last = trajectory[0];
-      let lost = 0;
-      const baseRadius = Math.max(36, anchor.pixR * 6);
-
-      for (let k = 1; k <= MAX_FORWARD_FRAMES; k++) {
-        const fi = anchor.idx + k;
-        if (fi >= N) break;
-        const t = frameTime(frames[fi]);
-        if (!isFinite(t)) continue;
-        await seekVideo(videoEl, t);
-        ctx.drawImage(videoEl, 0, 0, w, h);
-
-        const cx = last.x * w;
-        const cy = last.y * h;
-        let bias = { x: 0, y: 0 };
-        if (trajectory.length >= 2) {
-          const prev = trajectory[trajectory.length - 2];
-          bias = {
-            x: (last.x - prev.x) * w * (1 + k * 0.3),
-            y: (last.y - prev.y) * h * (1 + k * 0.3)
-          };
-        }
-        const radius = baseRadius * (1 + k * 0.35);
-        const roi = clampRect({
-          x: cx + bias.x - radius,
-          y: cy + bias.y - radius,
-          w: radius * 2,
-          h: radius * 2
-        }, w, h);
-        if (!roi) { lost++; if (lost > MAX_LOSS_TOLERANCE) break; continue; }
-
-        const blob = findBrightBlob(ctx, roi, last);
-        if (blob) {
-          const pt = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
-          trajectory.push(pt);
-          last = pt;
-          lost = 0;
-        } else {
-          lost++;
-          if (lost > MAX_LOSS_TOLERANCE) break;
+      const isManual = !!anchor.manual;
+      if (!isManual) {
+        let last = trajectory[0];
+        let lost = 0;
+        const baseRadius = Math.max(36, anchor.pixR * 6);
+        for (let k = 1; k <= MAX_FORWARD_FRAMES; k++) {
+          const fi = anchor.idx + k;
+          if (fi >= N) break;
+          const t = frameTime(frames[fi]);
+          if (!isFinite(t)) continue;
+          try { await seekVideo(videoEl, t); ctx.drawImage(videoEl, 0, 0, w, h); }
+          catch (_) { lost++; if (lost > MAX_LOSS_TOLERANCE) break; continue; }
+          const cx = last.x * w;
+          const cy = last.y * h;
+          let bias = { x: 0, y: 0 };
+          if (trajectory.length >= 2) {
+            const prev = trajectory[trajectory.length - 2];
+            bias = {
+              x: (last.x - prev.x) * w * (1 + k * 0.3),
+              y: (last.y - prev.y) * h * (1 + k * 0.3)
+            };
+          }
+          const radius = baseRadius * (1 + k * 0.35);
+          const roi = clampRect({
+            x: cx + bias.x - radius,
+            y: cy + bias.y - radius,
+            w: radius * 2,
+            h: radius * 2
+          }, w, h);
+          if (!roi) { lost++; if (lost > MAX_LOSS_TOLERANCE) break; continue; }
+          const blob = findBrightBlob(ctx, roi, last);
+          if (blob) {
+            const pt = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
+            trajectory.push(pt);
+            last = pt;
+            lost = 0;
+          } else {
+            lost++;
+            if (lost > MAX_LOSS_TOLERANCE) break;
+          }
         }
       }
     }
-
     // ---- Step 3: build the final trajectory (real + estimated) ----
     let points = trajectory.map(p => ({ x: p.x, y: p.y }));
     let speedMph = null;
@@ -210,18 +213,21 @@ const BallTrackModule = (() => {
         }
       }
     } else if (trajectory.length === 1) {
-      // Single anchor (manual or 1 lucky auto hit). Always project an arc,
-      // even if wrist velocity is unusable - the user gave us a starting
-      // point and they want to see SOMETHING.
-      let v = wristVelocityAtImpact(frames, phases, w, h);
+      // Single anchor: combine the user-marked ball position with the
+      // estimated club-head position at impact to derive a launch direction.
+      // Club-head -> ball vector projected outward = where the ball is pushed.
+      let v = velocityFromClubAndAnchor(trajectory[0], frames, phases, w, h);
       if (!v || !isFinite(v.vx) || !isFinite(v.vy)) {
-        // Default: ball flies up + slightly to the right (typical right-hander
-        // DTL shot). Normalized units per second - magnitude tuned so the arc
-        // visibly crosses the frame.
-        v = { vx: 0.6, vy: -1.4 };
+        // Fallback: wrist velocity. Almost always works since wrists are
+        // tracked by MediaPipe across the whole swing.
+        v = wristVelocityAtImpact(frames, phases, w, h);
+      }
+      if (!v || !isFinite(v.vx) || !isFinite(v.vy)) {
+        // Last resort: default DTL right-hander launch.
+        v = { vx: 0.4, vy: -1.6 };
       }
       direction = directionFromVelocity(v);
-      const projected = projectile(trajectory[0], v, 120, w, h);
+      const projected = projectileSoft(trajectory[0], v, w, h);
       for (const pt of projected) {
         points.push({ x: pt.x, y: pt.y, estimated: true });
       }
@@ -532,6 +538,85 @@ const BallTrackModule = (() => {
   function clamp01(v) { return Math.max(-0.05, Math.min(1.05, v)); }
 
   /**
+   * Derive a launch velocity for the ball from:
+   *   - user-marked ball position (anchor)
+   *   - estimated club-head position at impact (from wrist+elbow landmarks)
+   * The vector from the club head TO the ball, projected outward, is the
+   * direction the club is pushing the ball. Magnitude is scaled by wrist
+   * speed at impact so faster swings get longer arcs.
+   * Returns null if the impact-frame landmarks are unusable.
+   */
+  function velocityFromClubAndAnchor(anchor, frames, phases, w, h) {
+    if (!anchor) return null;
+    const impFrame = frames[Math.max(0, Math.min(frames.length - 1, phases.impactFrame | 0))];
+    if (!impFrame) return null;
+    const lm = impFrame.landmarks;
+    if (!lm) return null;
+    const LW = lm[15], RW = lm[16], LE = lm[13], RE = lm[14];
+    if (!LW || !RW || !LE || !RE) return null;
+    if ((LW.visibility ?? 0) < 0.25 || (RW.visibility ?? 0) < 0.25) return null;
+    // Estimated club-head position (extend wrist line beyond wrists).
+    const wristX = (LW.x + RW.x) / 2, wristY = (LW.y + RW.y) / 2;
+    const elbowX = (LE.x + RE.x) / 2, elbowY = (LE.y + RE.y) / 2;
+    const dx = wristX - elbowX, dy = wristY - elbowY;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.01) return null;
+    const headX = wristX + (dx / len) * 0.50;
+    const headY = wristY + (dy / len) * 0.50;
+    // Vector FROM club head TO ball = launch direction.
+    let vx = anchor.x - headX;
+    let vy = anchor.y - headY;
+    let vlen = Math.hypot(vx, vy);
+    if (vlen < 0.005) {
+      // Club head essentially on top of ball - use wrist motion as fallback
+      return null;
+    }
+    vx /= vlen; vy /= vlen;
+    // For DTL view, the ball almost always travels TOWARD the top of the
+    // frame (away from camera). If our derived direction points downward
+    // (vy > 0.4), flip it upward - this catches the common case where the
+    // club head ends up above the ball in the image (post-impact).
+    if (vy > 0.4) { vy = -vy; }
+    // Bias upward a touch so even sideways shots launch visibly into the air.
+    vy -= 0.5;
+    vlen = Math.hypot(vx, vy);
+    vx /= vlen; vy /= vlen;
+    // Magnitude: scaled by wrist speed at impact (normalized units per sec).
+    const wv = wristVelocityAtImpact(frames, phases, w, h);
+    let speed = 2.5;  // default normalized units/sec
+    if (wv) {
+      const wmag = Math.hypot(wv.vx, wv.vy);
+      if (isFinite(wmag) && wmag > 0) speed = Math.min(4.0, Math.max(1.8, wmag * 1.5));
+    }
+    return { vx: vx * speed, vy: vy * speed };
+  }
+
+  /**
+   * Softer 2D projectile - reduced gravity so the ball stays visible longer.
+   * Speed is auto-scaled so the arc always crosses ~70%+ of the frame.
+   */
+  function projectileSoft(start, v0, w, h) {
+    const out = [];
+    let x = start.x, y = start.y;
+    let vx = v0.vx;
+    let vy = v0.vy;
+    // Reduced gravity (1/3 real) for a dramatic, longer-hanging arc.
+    const G_NORM = (G_METRES / 3) * 120 / h;  // normalized units/sec^2
+    const dt = EXTRAP_DT;
+    for (let i = 0; i < EXTRAP_MAX_FRAMES; i++) {
+      vy += G_NORM * dt;
+      x  += vx * dt;
+      y  += vy * dt;
+      if (!insideFrame(x, y, 0.06)) {
+        out.push({ x: clamp01(x), y: clamp01(y) });
+        break;
+      }
+      out.push({ x, y });
+    }
+    return out;
+  }
+
+  /**
    * Estimate wrist velocity around the impact frame in normalized units/sec.
    * Used as a coarse direction proxy when ball detection fails entirely.
    */
@@ -579,6 +664,43 @@ const BallTrackModule = (() => {
     }
     if (!footL || !footR) return null;
     return { x: (footL.x + footR.x) / 2, y: Math.min(0.95, (footL.y + footR.y) / 2 + 0.04) };
+  }
+
+  /**
+   * Public entry. Wraps trackInner with a safety net so an unexpected throw
+   * never bubbles up as 'exception' reason. With a manualAnchor we always
+   * synthesize a physics-only trajectory so the user sees an arc.
+   */
+  async function track(videoEl, frames, phases, onProgress, opts) {
+    try {
+      return await trackInner(videoEl, frames, phases, onProgress, opts);
+    } catch (err) {
+      console.warn('[ball.track] inner crashed:', err);
+      // Last-ditch: if we have a manual anchor, synthesize a trajectory.
+      if (opts && opts.manualAnchor && phases) {
+        const anchorPt = { x: opts.manualAnchor.x, y: opts.manualAnchor.y };
+        const w = (videoEl && videoEl.videoWidth)  || 1280;
+        const h = (videoEl && videoEl.videoHeight) || 720;
+        let v = null;
+        try { v = velocityFromClubAndAnchor(anchorPt, frames, phases, w, h); } catch (_) {}
+        if (!v) { try { v = wristVelocityAtImpact(frames, phases, w, h); } catch (_) {} }
+        if (!v) v = { vx: 0.4, vy: -1.6 };
+        const points = [{ x: anchorPt.x, y: anchorPt.y, estimated: true }];
+        try {
+          const projected = projectileSoft(anchorPt, v, w, h);
+          for (const pt of projected) points.push({ x: pt.x, y: pt.y, estimated: true });
+        } catch (_) {}
+        return {
+          tracked: true,
+          fullyEstimated: false,
+          points,
+          speedMph: null,
+          speedRough: true,
+          direction: directionFromVelocity(v)
+        };
+      }
+      return { tracked: false, reason: 'exception' };
+    }
   }
 
   return { track };
