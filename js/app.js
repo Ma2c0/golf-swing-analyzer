@@ -685,33 +685,56 @@
   }
 
   // Preview screen buttons
-  document.getElementById('preview-analyze-btn').addEventListener('click', async () => {
+  // "Mark ball & analyze" — open the mark-ball screen first, then analyze
+  // with the user’s anchor. Pre-analysis path.
+  document.getElementById('preview-mark-analyze-btn').addEventListener('click', () => {
+    if (!pendingUpload) return;
+    const pv = document.getElementById('preview-video-el');
+    try { pv.pause(); } catch (_) {}
+    // Stash pending upload for later analysis after marking
+    window.__pendingUploadForMarking = pendingUpload;
+    openMarkBallScreen({ origin: 'pre-analysis', videoUrl: pendingUpload.url, duration: pendingUpload.duration });
+  });
+  // "Analyze without marking" — fully automatic, no manual anchor.
+  document.getElementById('preview-quick-analyze-btn').addEventListener('click', async () => {
     if (!pendingUpload) return;
     const file = pendingUpload.file;
-    // Stop the preview video before analyzing
     const pv = document.getElementById('preview-video-el');
     try { pv.pause(); } catch (_) {}
     await analyzeImportedVideo(file);
   });
+  // Note: blob URL is NOT revoked here — we keep it alive so that the
+  // Analysis screen can play the video AND a later "Tap to mark ball"
+  // retry can use the same source without re-uploading.
   document.getElementById('preview-choose-btn').addEventListener('click', () => {
-    if (pendingUpload?.url) URL.revokeObjectURL(pendingUpload.url);
-    pendingUpload = null;
+    discardPendingUpload();
     showTab('tab-record');
     setRecordMode('upload');
     fileInput.value = '';
     fileInput.click();
   });
   document.getElementById('preview-cancel-btn').addEventListener('click', () => {
-    if (pendingUpload?.url) URL.revokeObjectURL(pendingUpload.url);
-    pendingUpload = null;
+    discardPendingUpload();
     showTab('tab-record');
   });
   document.getElementById('upload-preview-back').addEventListener('click', () => {
-    if (pendingUpload?.url) URL.revokeObjectURL(pendingUpload.url);
-    pendingUpload = null;
+    discardPendingUpload();
     showTab('tab-record');
     setRecordMode('upload');
   });
+
+  /**
+   * Revoke and clear the pendingUpload only when the user is truly
+   * abandoning it (cancel / choose another). For successful analyze paths
+   * we deliberately keep the blob URL alive in __lastTrackInputs.
+   */
+  function discardPendingUpload() {
+    if (pendingUpload?.url) {
+      try { URL.revokeObjectURL(pendingUpload.url); } catch (_) {}
+    }
+    pendingUpload = null;
+    window.__pendingUploadForMarking = null;
+  }
 
   /**
    * Run MediaPipe pose detection on every frame of an imported video,
@@ -825,11 +848,13 @@
         trackVid.crossOrigin = 'anonymous';
         await new Promise(res => { trackVid.onloadedmetadata = () => res(); trackVid.onerror = () => res(); });
         if (result.rawPhases) {
+          const trackOpts = manualAnchor ? { manualAnchor } : undefined;
           const ball = await BallTrackModule.track(
             trackVid,
             frameData,
             result.rawPhases,
-            (p) => UIModule.setProgress(78 + Math.floor(p * 10), 'Tracking ball flight…')
+            (p) => UIModule.setProgress(78 + Math.floor(p * 10), 'Tracking ball flight…'),
+            trackOpts
           );
           result.ball = ball;
         } else {
@@ -877,22 +902,58 @@
 
   /* ===== Manual ball marking ===== */
   let _markBallPoint = null;
+  // 'pre-analysis' = opened from Preview screen, before running pose/analysis
+  // 'post-analysis' = opened from Analysis screen ball-status banner
+  let _markBallOrigin = 'post-analysis';
 
-  function openMarkBallScreen() {
-    const inputs = window.__lastTrackInputs;
-    if (!inputs || !inputs.videoUrl) {
+  /**
+   * Open the mark-ball fullscreen UI.
+   *
+   * @param {Object} [opts]
+   * @param {string} [opts.origin]    'pre-analysis' | 'post-analysis'
+   * @param {string} [opts.videoUrl]  blob URL to load (defaults to whichever
+   *                                  source is available)
+   * @param {number} [opts.duration]  optional duration (used by pre-analysis
+   *                                  path where __lastTrackInputs isn’t set)
+   */
+  function openMarkBallScreen(opts) {
+    opts = opts || {};
+    _markBallOrigin = opts.origin || 'post-analysis';
+    let videoUrl = opts.videoUrl;
+    if (!videoUrl) {
+      const inputs = window.__lastTrackInputs;
+      videoUrl = inputs && inputs.videoUrl;
+    }
+    if (!videoUrl) {
+      // Fallback: if we still have the pending upload, use its URL.
+      if (pendingUpload && pendingUpload.url) videoUrl = pendingUpload.url;
+    }
+    if (!videoUrl) {
       alert('Video no longer available. Please re-upload.');
       return;
     }
     const v = document.getElementById('mark-ball-video');
-    if (v.src !== inputs.videoUrl) {
-      v.src = inputs.videoUrl;
+    if (v.src !== videoUrl) {
+      v.src = videoUrl;
       v.load();
     }
     _markBallPoint = null;
     document.getElementById('mark-ball-confirm').disabled = true;
     drawMarkBallOverlay();
     showTab('screen-mark-ball');
+
+    // Default to ~20% into the video so users land near the setup pose.
+    // For post-analysis we have richer info (rawPhases.setupEnd) and that
+    // takes precedence (handled in loadedmetadata listener).
+    const wantsDefault = (_markBallOrigin === 'pre-analysis');
+    if (wantsDefault) {
+      const targetT = (opts.duration || v.duration || 0) * 0.20;
+      const setStart = () => {
+        try { v.currentTime = targetT; } catch (_) {}
+      };
+      if (v.readyState >= 1) setStart();
+      else v.addEventListener('loadedmetadata', setStart, { once: true });
+    }
     setTimeout(drawMarkBallOverlay, 100);
   }
   function closeMarkBallScreen() {
@@ -936,8 +997,25 @@
   }
 
   async function runManualBallTrack(point) {
+    if (!point) return;
+
+    // Pre-analysis path: we don’t have pose data yet — run the full
+    // pipeline with the manual anchor passed in.
+    if (_markBallOrigin === 'pre-analysis') {
+      const upload = window.__pendingUploadForMarking;
+      if (!upload) {
+        alert('Upload was lost. Please re-upload your video.');
+        showTab('tab-record');
+        return;
+      }
+      // Run pose extraction + analysis + ball tracking with manualAnchor
+      await analyzeImportedVideo(upload.file, { manualAnchor: point });
+      return;
+    }
+
+    // Post-analysis path: pose data is cached, just re-run ball tracking.
     const inputs = window.__lastTrackInputs;
-    if (!inputs || !point) return;
+    if (!inputs) return;
     showTab('screen-analyzing');
     UIModule.setLoaderStep('ball');
     UIModule.setProgress(60, 'Re-tracking with your mark…');
@@ -1109,16 +1187,22 @@
   renderJournal();
 
   // ===== MANUAL BALL MARKING =====
-  // Wire "Tap to mark ball" CTA on Analysis ball-status banner.
+  // Wire "Tap to mark ball" CTA on Analysis ball-status banner (post-analysis).
   const ballMarkBtn = document.getElementById('ball-mark-btn');
   if (ballMarkBtn) {
-    ballMarkBtn.addEventListener('click', () => openMarkBallScreen());
+    ballMarkBtn.addEventListener('click', () => openMarkBallScreen({ origin: 'post-analysis' }));
   }
   const mbBack = document.getElementById('mark-ball-back');
   if (mbBack) {
     mbBack.addEventListener('click', () => {
       closeMarkBallScreen();
-      showTab('tab-analysis');
+      // Smart back: if we entered from Preview, go back to Preview;
+      // otherwise return to Analysis.
+      if (_markBallOrigin === 'pre-analysis') {
+        showTab('screen-upload-preview');
+      } else {
+        showTab('tab-analysis');
+      }
     });
     document.getElementById('mark-ball-redo').addEventListener('click', () => {
       _markBallPoint = null;
@@ -1182,6 +1266,92 @@
       mbConfirm.disabled = false;
     });
     mbConfirm.addEventListener('click', () => runManualBallTrack(_markBallPoint));
+
+    // Skip button: continue without a manual mark.
+    const mbSkip = document.getElementById('mark-ball-skip');
+    if (mbSkip) {
+      mbSkip.addEventListener('click', async () => {
+        closeMarkBallScreen();
+        if (_markBallOrigin === 'pre-analysis') {
+          // Pre-analysis: kick off automatic analysis with no manual anchor.
+          const upload = window.__pendingUploadForMarking;
+          if (upload) {
+            await analyzeImportedVideo(upload.file);
+          } else {
+            showTab('tab-record');
+          }
+        } else {
+          // Post-analysis: just return.
+          showTab('tab-analysis');
+        }
+      });
+    }
+
+    // Magnifying loupe — follow finger/cursor while pressed over the video.
+    const mbLoupe       = document.getElementById('mark-ball-loupe');
+    const mbLoupeCanvas = document.getElementById('mark-ball-loupe-canvas');
+    const LOUPE_ZOOM    = 3;
+    const LOUPE_SIZE    = 120;
+    let loupeRaf = null;
+
+    function drawLoupe(clientX, clientY) {
+      const v = document.getElementById('mark-ball-video');
+      const rect = v.getBoundingClientRect();
+      const stageRect = mbStage.getBoundingClientRect();
+      const localX = clientX - rect.left;
+      const localY = clientY - rect.top;
+      const vw = v.videoWidth  || rect.width;
+      const vh = v.videoHeight || rect.height;
+      const s  = Math.min(rect.width / vw, rect.height / vh);
+      const rw = vw * s, rh = vh * s;
+      const ox = (rect.width - rw) / 2;
+      const oy = (rect.height - rh) / 2;
+      const px = localX - ox, py = localY - oy;
+      if (px < 0 || py < 0 || px > rw || py > rh) {
+        mbLoupe.classList.add('hidden');
+        return;
+      }
+      // Position the loupe near the finger but not under it
+      let lx = clientX - stageRect.left - LOUPE_SIZE - 16;
+      let ly = clientY - stageRect.top  - LOUPE_SIZE - 16;
+      if (lx < 8) lx = clientX - stageRect.left + 16;
+      if (ly < 8) ly = clientY - stageRect.top  + 16;
+      mbLoupe.style.left = lx + 'px';
+      mbLoupe.style.top  = ly + 'px';
+      mbLoupe.classList.remove('hidden');
+      // Draw the zoomed slice of the video
+      const cx = (px / rw) * vw;
+      const cy = (py / rh) * vh;
+      const srcSize = LOUPE_SIZE / LOUPE_ZOOM;
+      mbLoupeCanvas.width  = LOUPE_SIZE;
+      mbLoupeCanvas.height = LOUPE_SIZE;
+      const lctx = mbLoupeCanvas.getContext('2d');
+      lctx.fillStyle = '#000';
+      lctx.fillRect(0, 0, LOUPE_SIZE, LOUPE_SIZE);
+      try {
+        lctx.drawImage(v,
+          cx - srcSize / 2, cy - srcSize / 2, srcSize, srcSize,
+          0, 0, LOUPE_SIZE, LOUPE_SIZE);
+      } catch (_) {}
+    }
+    function hideLoupe() { mbLoupe.classList.add('hidden'); }
+
+    function onPointerMove(e) {
+      if (loupeRaf) cancelAnimationFrame(loupeRaf);
+      const x = e.clientX, y = e.clientY;
+      loupeRaf = requestAnimationFrame(() => drawLoupe(x, y));
+    }
+    mbStage.addEventListener('pointerdown', (e) => {
+      drawLoupe(e.clientX, e.clientY);
+      mbStage.addEventListener('pointermove', onPointerMove);
+    });
+    const endLoupe = () => {
+      mbStage.removeEventListener('pointermove', onPointerMove);
+      hideLoupe();
+    };
+    mbStage.addEventListener('pointerup', endLoupe);
+    mbStage.addEventListener('pointercancel', endLoupe);
+    mbStage.addEventListener('pointerleave', endLoupe);
   }
 
   // ===== DEMO MODE =====

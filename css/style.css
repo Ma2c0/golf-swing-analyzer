@@ -804,6 +804,42 @@ html, body {
   width: 100%; height: 100%;
   pointer-events: none;
 }
+.mark-ball-loupe {
+  position: absolute;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  pointer-events: none;
+  overflow: hidden;
+  border: 3px solid var(--cream);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  z-index: 5;
+  background: #000;
+}
+.mark-ball-loupe.hidden { display: none; }
+#mark-ball-loupe-canvas {
+  width: 100%; height: 100%;
+  display: block;
+  background: #000;
+}
+.mark-ball-loupe-crosshair {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.mark-ball-loupe-crosshair::before,
+.mark-ball-loupe-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(213, 111, 85, 0.85);
+}
+.mark-ball-loupe-crosshair::before {
+  left: 50%; top: 0; bottom: 0;
+  width: 1px; transform: translateX(-50%);
+}
+.mark-ball-loupe-crosshair::after {
+  top: 50%; left: 0; right: 0;
+  height: 1px; transform: translateY(-50%);
+}
 .mark-ball-scrub {
   display: flex; align-items: center; gap: .55rem;
   margin-bottom: .35rem;
@@ -1399,6 +1435,23 @@ html, body {
   display: flex; flex-direction: column; gap: 8px;
   margin: .3rem 0 1.5rem;
   padding: 0 .15rem;
+}
+.upload-action-stack .btn,
+.upload-action-stack .btn-secondary {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: .85rem .9rem;
+  text-align: center;
+  line-height: 1.25;
+}
+.btn-sub {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: .68rem;
+  font-weight: 500;
+  margin-top: .15rem;
+  opacity: 0.75;
+  letter-spacing: 0.2px;
 }
 .btn-secondary {
   width: 100%;

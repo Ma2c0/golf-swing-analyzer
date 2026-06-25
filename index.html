@@ -285,8 +285,15 @@
 
       <!-- Action buttons -->
       <div class="upload-action-stack">
-        <button id="preview-analyze-btn" class="btn btn-primary btn-block">Analyze Swing</button>
-        <button id="preview-choose-btn" class="btn btn-secondary btn-block">Choose Another Video</button>
+        <button id="preview-mark-analyze-btn" class="btn btn-primary btn-block">
+          Mark ball &amp; analyze
+          <span class="btn-sub">Recommended · most accurate ball tracking</span>
+        </button>
+        <button id="preview-quick-analyze-btn" class="btn btn-secondary btn-block">
+          Analyze without marking
+          <span class="btn-sub">Faster · ball tracking may be unavailable</span>
+        </button>
+        <button id="preview-choose-btn" class="btn-tertiary">Choose Another Video</button>
         <button id="preview-cancel-btn" class="btn-tertiary">Cancel</button>
       </div>
     </div>
@@ -510,6 +517,10 @@
       <div class="mark-ball-stage" id="mark-ball-stage">
         <video id="mark-ball-video" playsinline preload="auto" muted></video>
         <canvas id="mark-ball-overlay"></canvas>
+        <div id="mark-ball-loupe" class="mark-ball-loupe hidden">
+          <canvas id="mark-ball-loupe-canvas"></canvas>
+          <div class="mark-ball-loupe-crosshair"></div>
+        </div>
       </div>
 
       <div class="mark-ball-scrub">
@@ -525,6 +536,7 @@
 
       <div class="mark-ball-actions">
         <button id="mark-ball-confirm" class="btn btn-primary btn-block" disabled>Confirm ball position</button>
+        <button id="mark-ball-skip" class="btn-tertiary">Skip — analyze without marking</button>
       </div>
     </div>
   </div>
