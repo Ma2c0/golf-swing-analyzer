@@ -219,7 +219,9 @@
     if (!b) return 'Ball not tracked';
     const reasonMap = {
       'no-ball-found-at-address': 'Could not find the ball at address',
+      'ball-not-in-frame': 'Ball not in the camera view',
       'lost-after-impact': 'Lost the ball after impact',
+      'no-roi': 'Stance not detected; can\u2019t aim ball search',
       'no-phases': 'Swing phases not detected',
       'speed-out-of-range': 'Speed estimate was unreliable',
       'missing-inputs': 'Tracking inputs missing',

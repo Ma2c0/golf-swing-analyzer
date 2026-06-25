@@ -66,23 +66,36 @@ const BallTrackModule = (() => {
     const sourceCx = sourceCv.getContext('2d', { willReadFrequently: true });
 
     // --- Phase 1: find the address ball -----------------------------------
+    // Try multiple ROIs per frame so this works for DTL (club-head forward)
+    // AND face-on (between/below the feet). First hit wins.
     let addressBall = null;
-    for (let i = SEARCH_FRAMES_BEFORE; i >= 0; i--) {
-      const t = frameTime(frames[Math.max(0, impactIdx - i)]);
+    let anyRoiHadFrame = false;
+    for (let i = SEARCH_FRAMES_BEFORE; i >= 0 && !addressBall; i--) {
+      const fIdx = Math.max(0, impactIdx - i);
+      const t = frameTime(frames[fIdx]);
       if (!isFinite(t)) continue;
-      const roi = estimateClubHeadRoi(frames[Math.max(0, impactIdx - i)], w, h);
-      if (!roi) continue;
+      const rois = candidateRois(frames[fIdx], w, h);
+      if (rois.length === 0) continue;
+      anyRoiHadFrame = true;
       await seekVideo(videoEl, t);
       sourceCx.drawImage(videoEl, 0, 0, w, h);
-      const blob = findBrightBlob(sourceCx, roi);
-      if (blob) {
-        addressBall = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
-        break;
+      for (const roi of rois) {
+        const blob = findBrightBlob(sourceCx, roi);
+        if (blob) {
+          addressBall = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
+          break;
+        }
       }
       if (onProgress) onProgress((SEARCH_FRAMES_BEFORE - i) / (SEARCH_FRAMES_BEFORE * 2 + SEARCH_FRAMES_AFTER));
     }
     if (!addressBall) {
-      return { tracked: false, reason: 'no-ball-found-at-address' };
+      // Distinguish "we never even built an ROI" from "we built ROIs but
+      // found nothing white in them" — the latter usually means the ball
+      // is out of frame.
+      return {
+        tracked: false,
+        reason: anyRoiHadFrame ? 'ball-not-in-frame' : 'no-roi'
+      };
     }
 
     // --- Phase 2: track forward through impact + follow-through ----------
@@ -212,38 +225,69 @@ const BallTrackModule = (() => {
   }
 
   /**
-   * Build an ROI (in pixel coords) centered on the predicted club-head
-   * position, based on wrist + elbow landmark positions. The club head is
-   * estimated by extending the wrist vector beyond the wrist midpoint.
-   * Returns null if landmarks are too unreliable.
+   * Return one or more pixel-space ROIs where the ball might be at address.
+   *  - ROI 1 (DTL-style): in front of the projected club head
+   *  - ROI 2 (face-on / always-on): between the feet at ground level
+   * We always include ROI 2 because it costs nothing and dramatically
+   * improves face-on coverage.
    */
-  function estimateClubHeadRoi(frame, w, h) {
+  function candidateRois(frame, w, h) {
+    const out = [];
     const lm = frame && frame.landmarks;
-    if (!lm) return null;
+    if (!lm) return out;
+
     const LW = lm[15], RW = lm[16], LE = lm[13], RE = lm[14];
-    if (!LW || !RW || !LE || !RE) return null;
-    if ((LW.visibility ?? 0) < 0.3 || (RW.visibility ?? 0) < 0.3) return null;
-
-    const wristX = (LW.x + RW.x) / 2;
-    const wristY = (LW.y + RW.y) / 2;
-    const elbowX = (LE.x + RE.x) / 2;
-    const elbowY = (LE.y + RE.y) / 2;
-    // Direction from elbows -> wrists, extended (the club is below/forward of wrists at address)
-    const dx = wristX - elbowX;
-    const dy = wristY - elbowY;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 0.01) return null;
-    // Club length ~0.35 normalized units (rough estimate)
-    const clubScale = 0.40;
-    const headX = wristX + (dx / len) * clubScale;
-    const headY = wristY + (dy / len) * clubScale;
-
-    // Build an ROI around the club head, biased slightly toward ground
-    // (downward in image coords) where the ball would actually sit.
-    const cx = headX * w;
-    const cy = (headY + 0.02) * h;
+    const LA = lm[27], RA = lm[28];   // ankles
+    const LK = lm[25], RK = lm[26];   // knees
     const pad = ROI_PADDING_NORM * Math.max(w, h);
-    return clampRect({ x: cx - pad, y: cy - pad, w: pad * 2, h: pad * 2 }, w, h);
+
+    // -- ROI 1: club head projection (DTL style) --
+    if (LW && RW && LE && RE
+        && (LW.visibility ?? 0) >= 0.3 && (RW.visibility ?? 0) >= 0.3) {
+      const wristX = (LW.x + RW.x) / 2;
+      const wristY = (LW.y + RW.y) / 2;
+      const elbowX = (LE.x + RE.x) / 2;
+      const elbowY = (LE.y + RE.y) / 2;
+      const dx = wristX - elbowX;
+      const dy = wristY - elbowY;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len >= 0.01) {
+        const clubScale = 0.40;
+        const headX = wristX + (dx / len) * clubScale;
+        const headY = wristY + (dy / len) * clubScale;
+        const cx = headX * w;
+        const cy = (headY + 0.02) * h;
+        const r = clampRect({ x: cx - pad, y: cy - pad, w: pad * 2, h: pad * 2 }, w, h);
+        if (r) out.push(r);
+      }
+    }
+
+    // -- ROI 2: between/below the feet (face-on style; works for DTL too) --
+    // Use ankles if visible, else fall back to knees.
+    let footL = null, footR = null;
+    if (LA && RA && (LA.visibility ?? 0) >= 0.25 && (RA.visibility ?? 0) >= 0.25) {
+      footL = LA; footR = RA;
+    } else if (LK && RK && (LK.visibility ?? 0) >= 0.25 && (RK.visibility ?? 0) >= 0.25) {
+      footL = LK; footR = RK;
+    }
+    if (footL && footR) {
+      const midX = (footL.x + footR.x) / 2;
+      const midY = (footL.y + footR.y) / 2;
+      // Stance width gives us a width estimate for the ROI — cap it so
+      // we don't search the entire image when ankles are misdetected.
+      const stance = Math.abs(footL.x - footR.x);
+      const halfW = Math.max(pad, Math.min(stance * w * 0.7, w * 0.18));
+      // Sweep from feet level slightly upward, since the ball sits in front
+      // of the player (between heels) and may project above the ankle line.
+      const halfH = Math.max(pad, h * 0.10);
+      const cx = midX * w;
+      // Bias down ~3% so the ROI includes the ground line, not just feet.
+      const cy = (midY + 0.03) * h;
+      const r = clampRect({ x: cx - halfW, y: cy - halfH, w: halfW * 2, h: halfH * 2 }, w, h);
+      if (r) out.push(r);
+    }
+
+    return out;
   }
 
   function clampRect(r, w, h) {

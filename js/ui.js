@@ -82,6 +82,57 @@ const UIModule = (() => {
     setupAnalysisVideo(result);
     renderSwingPanel(result);
     renderClubPanel(result);
+    renderBallStatus(result.ball);
+  }
+
+  /**
+   * Show / hide the ball-tracking status banner under the Analysis video.
+   * - tracked + speed: hidden (the trajectory overlay is enough)
+   * - tracked but speed unreliable: amber notice
+   * - not tracked: amber notice with reason-specific copy
+   */
+  function renderBallStatus(ball) {
+    const el    = document.getElementById('ball-status');
+    const title = document.getElementById('ball-status-title');
+    const body  = document.getElementById('ball-status-body');
+    if (!el) return;
+
+    if (!ball) { el.classList.add('hidden'); return; }
+    if (ball.tracked && ball.speedMph) { el.classList.add('hidden'); return; }
+
+    const REASONS = {
+      'no-ball-found-at-address':
+        ['Ball not visible at address',
+         "We couldn\u2019t spot the ball before your swing. Make sure the ball is clearly in the camera view at setup."],
+      'ball-not-in-frame':
+        ['Ball not in frame',
+         'The camera view doesn\u2019t include the ball. Re-record with the ball visible — ideally between your feet for face-on, or in front of you for down-the-line.'],
+      'lost-after-impact':
+        ['Lost the ball after impact',
+         'We saw the ball at address but lost it once you hit. The ball flew out of frame too fast — try a wider shot or zoom out.'],
+      'no-roi':
+        ['Couldn\u2019t lock onto your stance',
+         'We need your feet visible to know where to look for the ball. Make sure your full body is in the frame.'],
+      'no-phases':
+        ['Swing phases not detected',
+         'Without phase detection we can\u2019t aim the ball search. Try a clearer recording.'],
+      'speed-out-of-range':
+        ['Ball speed not reliable',
+         'We tracked the ball but the speed estimate looked unrealistic. Direction is shown but speed is hidden.'],
+      'missing-inputs':
+        ['Tracking inputs missing',
+         'Something went wrong loading the video for tracking. Try re-uploading.'],
+      'no-timestamps':
+        ['Frame timestamps unavailable',
+         'Couldn\u2019t align frames with video time. Try re-uploading.'],
+      'exception':
+        ['Tracking failed',
+         'An unexpected error occurred while tracking the ball.']
+    };
+    const [t, b] = REASONS[ball.reason] || ['Ball not tracked', 'Try re-recording with the ball clearly visible.'];
+    title.textContent = t;
+    body.textContent  = b;
+    el.classList.remove('hidden');
   }
 
   /**

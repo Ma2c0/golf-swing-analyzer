@@ -642,18 +642,9 @@ html, body {
   aspect-ratio: 4/5;
   border-radius: var(--r-xl);
   overflow: hidden;
-  background: #2D4632;
+  background: #000;   /* black letterbox bars */
   margin-bottom: 1.1rem;
   box-shadow: 0 8px 24px rgba(60,40,20,0.12);
-}
-/* Empty fallback shown when no video is attached yet. Sits behind the
-   <video> element so as soon as a real source loads, the video itself
-   covers the gradient. */
-.a-video-card::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, #4a6b3e 0%, #6b8a5a 50%, #8aa872 100%);
-  z-index: 0;
 }
 .a-video {
   position: absolute; inset: 0;
@@ -713,6 +704,33 @@ html, body {
   font-size: .72rem; font-weight: 500;
   letter-spacing: 0.3px;
   pointer-events: none;
+}
+/* Ball-track status banner (sits below the video card) */
+.ball-status {
+  display: flex; gap: .65rem; align-items: flex-start;
+  background: rgba(229, 164, 0, 0.12);
+  border: 1px solid rgba(229, 164, 0, 0.4);
+  border-radius: var(--r-lg);
+  padding: .7rem .85rem;
+  margin-bottom: 1rem;
+  color: #6e4a00;
+  font-size: .78rem;
+  line-height: 1.5;
+}
+.ball-status.hidden { display: none; }
+.ball-status > svg {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  color: var(--amber);
+  margin-top: 1px;
+}
+.ball-status-text strong {
+  display: block;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: .88rem;
+  font-weight: 400;
+  color: #4d3700;
+  margin-bottom: .1rem;
 }
 .a-video-duration {
   position: absolute;
