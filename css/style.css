@@ -703,29 +703,188 @@ html, body {
 /* =====================================================
    ANALYZING SCREEN
    ===================================================== */
-#screen-analyzing { background: var(--cream); }
+#screen-analyzing {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(168,184,156,0.25) 0%, transparent 60%),
+    var(--cream);
+}
 .analyzing-content {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 2rem; text-align: center;
+  justify-content: center; padding: 2rem 1.5rem; text-align: center;
 }
-.spinner {
-  width: 40px; height: 40px; border: 3px solid var(--line);
-  border-top-color: var(--moss); border-radius: 50%;
-  animation: spin .8s linear infinite; margin-bottom: 1.2rem;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
 .analyzing-content h2 {
   font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 1.2rem; font-weight: 400; margin-bottom: .4rem;
+  font-size: 1.6rem; font-weight: 400; margin-bottom: .4rem; color: var(--ink);
 }
-.analyzing-content p { color: var(--text2); font-size: .82rem; }
+.analyzing-content p.loader-sub {
+  color: var(--text2); font-size: .85rem; line-height: 1.5;
+  max-width: 280px; margin: 0 auto;
+}
+.analyzing-content p.loader-status {
+  color: var(--text3); font-size: .75rem;
+  margin-top: .6rem; letter-spacing: 0.3px;
+}
 .progress-bar {
-  width: 80%; max-width: 240px; height: 4px; background: var(--line);
+  width: 75%; max-width: 240px; height: 4px; background: var(--line);
   border-radius: 2px; margin-top: 1.2rem; overflow: hidden;
 }
 .progress-fill {
   height: 100%; width: 0%; background: linear-gradient(90deg, var(--sage), var(--moss));
   border-radius: 2px; transition: width .3s;
+}
+
+/* Rolling-ball animation */
+.green-strip {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  height: 84px;
+  margin: 0 auto .8rem;
+}
+.green-arc {
+  position: absolute;
+  bottom: 8px; left: 0;
+  width: 100%; height: 40px;
+  background: linear-gradient(180deg, #8aa872 0%, #5d8049 100%);
+  border-radius: 50% 50% 8px 8px / 60% 60% 8px 8px;
+  box-shadow: inset 0 -8px 16px rgba(0,0,0,0.15);
+}
+.green-arc::before {
+  content: '';
+  position: absolute;
+  top: 12px; left: 8%; right: 8%;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,0.35) 0 3px, transparent 3px 8px);
+}
+.hole {
+  position: absolute;
+  bottom: 18px; right: 14%;
+  width: 24px; height: 8px;
+  background: #1a2715;
+  border-radius: 50%;
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.flag-pole {
+  position: absolute;
+  bottom: 20px; right: calc(14% + 6px);
+  width: 1.5px; height: 50px;
+  background: #fff;
+}
+.flag {
+  position: absolute;
+  bottom: 60px; right: calc(14% + 7.5px);
+  width: 18px; height: 12px;
+  background: var(--clay);
+  clip-path: polygon(0 0, 100% 0, 70% 50%, 100% 100%, 0 100%);
+}
+.ball-rolling {
+  position: absolute;
+  bottom: 28px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #e0d5b8);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset -2px -2px 3px rgba(0,0,0,0.15);
+  animation: roll-to-hole 4.5s cubic-bezier(0.4, 0, 0.85, 0.45) infinite;
+}
+@keyframes roll-to-hole {
+  0%   { left: 8%; transform: rotate(0deg); bottom: 30px; }
+  50%  { bottom: 32px; }
+  85%  { left: calc(86% - 7px); bottom: 28px; transform: rotate(720deg); }
+  92%  { left: calc(86% - 7px); bottom: 22px; transform: rotate(770deg) scale(1); opacity: 1; }
+  96%  { left: calc(86% - 7px); bottom: 16px; transform: rotate(800deg) scale(0.7); opacity: 0.6; }
+  100% { left: calc(86% - 7px); bottom: 12px; transform: rotate(810deg) scale(0.4); opacity: 0; }
+}
+
+.loader-steps {
+  margin-top: 1.5rem;
+  display: flex; flex-direction: column;
+  gap: .35rem;
+  width: 100%; max-width: 260px;
+  text-align: left;
+}
+.step-row {
+  display: flex; align-items: center; gap: .55rem;
+  font-size: .82rem;
+  color: var(--text3);
+  padding: .25rem .15rem;
+  transition: all 0.3s;
+}
+.step-row.done { color: var(--moss); font-weight: 600; }
+.step-row.active { color: var(--ink); font-weight: 600; }
+.step-icon {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+.step-row.done .step-icon {
+  background: var(--moss); border-color: var(--moss);
+}
+.step-row.done .step-icon::after {
+  content: '✓'; color: #fff; font-size: 10px; font-weight: 700; line-height: 1;
+}
+.step-row.active .step-icon {
+  border-color: var(--moss);
+  box-shadow: 0 0 0 3px rgba(63,95,69,0.15);
+}
+.step-row.active .step-icon::after {
+  content: ''; width: 5px; height: 5px;
+  background: var(--moss); border-radius: 50%;
+}
+
+/* Low confidence modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(42, 38, 32, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  animation: fadeUp .2s ease-out;
+}
+.modal-backdrop.hidden { display: none; }
+.modal-card {
+  background: var(--cream);
+  border-radius: 24px;
+  padding: 1.8rem 1.5rem 1.4rem;
+  width: 100%; max-width: 340px;
+  text-align: center;
+  box-shadow: 0 30px 60px rgba(60,40,20,0.3);
+}
+.modal-icon {
+  width: 56px; height: 56px;
+  margin: 0 auto .8rem;
+  border-radius: 50%;
+  background: rgba(229,164,0,0.15);
+  color: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-icon svg { width: 30px; height: 30px; }
+.modal-title {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 1.3rem; font-weight: 400;
+  color: var(--ink);
+  margin-bottom: .5rem;
+}
+.modal-body {
+  font-size: .85rem; color: var(--text2);
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
+}
+.modal-body strong { color: var(--ink); font-weight: 700; }
+.modal-actions {
+  display: flex; gap: .5rem;
+}
+.modal-actions .btn,
+.modal-actions .btn-secondary {
+  flex: 1;
+  padding: .8rem;
+  border-radius: 14px;
+  font-size: .85rem;
+  margin: 0;
 }
 
 

@@ -3,11 +3,30 @@
  */
 const UIModule = (() => {
 
+  /** Loader step keys in the order they appear in #loader-steps */
+  const LOADER_STEPS = ['validate', 'detect', 'phases', 'ball', 'score'];
+
   function setProgress(pct, text) {
     const fill = document.getElementById('progress-fill');
     const status = document.getElementById('analysis-status');
     if (fill) fill.style.width = pct + '%';
     if (status && text) status.textContent = text;
+  }
+
+  /**
+   * Drive the 5-step loader. Pass the active step key; everything before it
+   * is marked done, the step itself is active, and the rest stays pending.
+   * `null` clears the loader (all rows pending) — used to reset between runs.
+   */
+  function setLoaderStep(key) {
+    const rows = document.querySelectorAll('#loader-steps .step-row');
+    if (!rows.length) return;
+    const i = key ? LOADER_STEPS.indexOf(key) : -1;
+    rows.forEach((row, idx) => {
+      row.classList.remove('done', 'active');
+      if (idx < i) row.classList.add('done');
+      else if (idx === i) row.classList.add('active');
+    });
   }
 
   /** Golfer silhouette SVG for a swing phase */
@@ -365,5 +384,5 @@ const UIModule = (() => {
     ctx.closePath(); ctx.fill(); ctx.stroke();
   }
 
-  return { setProgress, renderAnalysis, showPhaseDetail, scoreColor, scoreTier, phaseFigureSVG };
+  return { setProgress, setLoaderStep, renderAnalysis, showPhaseDetail, scoreColor, scoreTier, phaseFigureSVG };
 })();

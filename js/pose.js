@@ -54,12 +54,17 @@ const PoseModule = (() => {
         `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
     });
 
+    // High-accuracy config for uploaded videos. Heavy model (complexity=2)
+    // is ~3x slower than lite/full but dramatically improves landmark
+    // visibility on cropped/distant subjects — which is the typical
+    // failure mode for self-recorded DTL swings.
     pose.setOptions({
-      modelComplexity: 1,      // 0=lite, 1=full, 2=heavy
-      smoothLandmarks: true,
-      enableSegmentation: false,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      modelComplexity: 2,        // heavy model: best landmark accuracy
+      smoothLandmarks: true,     // inter-frame smoothing fills momentary dropouts
+      enableSegmentation: true,  // helps lock onto the subject vs busy backgrounds
+      smoothSegmentation: true,
+      minDetectionConfidence: 0.3, // lower threshold → more permissive detection
+      minTrackingConfidence:  0.3
     });
 
     pose.onResults(onResults);

@@ -19,43 +19,59 @@ const AnalysisModule = (() => {
    * @param {Array} frames - array of { timestamp, landmarks }
    * @returns {Object} analysis result
    */
-  // Key landmarks that MUST be visible for a valid swing analysis
-  const REQUIRED_LANDMARKS = [
+  // Upper-body landmarks — weighted highest because golf analysis can still
+  // work when only the upper body is fully visible (legs cut off is common).
+  const UPPER_BODY = [
     LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER,
-    LM.LEFT_ELBOW, LM.RIGHT_ELBOW,
-    LM.LEFT_WRIST, LM.RIGHT_WRIST,
-    LM.LEFT_HIP, LM.RIGHT_HIP,
-    LM.LEFT_KNEE, LM.RIGHT_KNEE,
+    LM.LEFT_ELBOW,    LM.RIGHT_ELBOW,
+    LM.LEFT_WRIST,    LM.RIGHT_WRIST,
+    LM.LEFT_HIP,      LM.RIGHT_HIP
+  ];
+  // Lower-body landmarks — nice-to-have for full quality but not blocking.
+  const LOWER_BODY = [
+    LM.LEFT_KNEE,  LM.RIGHT_KNEE,
     LM.LEFT_ANKLE, LM.RIGHT_ANKLE
   ];
+  const REQUIRED_LANDMARKS = UPPER_BODY.concat(LOWER_BODY);
 
-  const MIN_VISIBILITY = 0.5;       // per-landmark threshold
-  const MIN_VALID_RATIO = 0.6;      // at least 60% of frames must have full body
-  const MIN_VALID_FRAMES = 15;      // absolute minimum usable frames
+  // Softened thresholds (tuned for uploaded videos, see issue 2026-06-24).
+  // The previous values (0.5 visibility, 60% frame ratio, all 12 landmarks)
+  // rejected many genuine swings where the user's legs were cropped or the
+  // subject was small in the frame.
+  const MIN_VISIBILITY    = 0.3;   // was 0.5
+  const MIN_VALID_RATIO   = 0.40;  // was 0.60 — needs only 40% usable frames
+  const MIN_VALID_FRAMES  = 12;    // was 15 (slightly more permissive)
+  const MIN_UPPER_VISIBLE = 6;     // out of 8 upper-body landmarks required
 
   /**
-   * Check if a single frame has all required landmarks visible.
+   * A frame is analyzable when at least most of the upper body is visible.
+   * Lower body is bonus, not required.
    */
   function frameHasFullBody(landmarks) {
-    for (const idx of REQUIRED_LANDMARKS) {
-      if (!landmarks[idx] || landmarks[idx].visibility < MIN_VISIBILITY) {
-        return false;
-      }
+    let upper = 0;
+    for (const idx of UPPER_BODY) {
+      if (landmarks[idx] && landmarks[idx].visibility >= MIN_VISIBILITY) upper++;
     }
-    return true;
+    return upper >= MIN_UPPER_VISIBLE;
   }
 
-  /**
-   * Count how many required landmarks are visible in a frame.
-   */
+  /** Count visible landmarks of any kind (for diagnostics). */
   function countVisibleLandmarks(landmarks) {
     let count = 0;
     for (const idx of REQUIRED_LANDMARKS) {
-      if (landmarks[idx] && landmarks[idx].visibility >= MIN_VISIBILITY) {
-        count++;
-      }
+      if (landmarks[idx] && landmarks[idx].visibility >= MIN_VISIBILITY) count++;
     }
     return count;
+  }
+
+  /** Compute average visibility across upper body (used for confidence). */
+  function avgUpperVisibility(landmarks) {
+    let s = 0, n = 0;
+    for (const idx of UPPER_BODY) {
+      const v = landmarks[idx]?.visibility ?? 0;
+      if (v > 0) { s += v; n++; }
+    }
+    return n > 0 ? s / n : 0;
   }
 
   function analyze(frames) {
@@ -86,14 +102,14 @@ const AnalysisModule = (() => {
 
       return {
         error: true,
-        message: `Cannot analyze: full body not detected. ${hint} Please step back so your entire body (head to feet) is visible in the camera, then try again. (Detected ${visCount}/${totalRequired} key points)`
+        message: `Cannot analyze: golfer not detected. ${hint} Try moving closer to the camera or recording in better light. (Detected ${visCount}/${totalRequired} key points)`
       };
     }
 
     if (validRatio < MIN_VALID_RATIO) {
       return {
         error: true,
-        message: `Body tracking was too unstable — only ${Math.round(validRatio * 100)}% of frames had a full body visible. Make sure you have good lighting and your full body stays in frame throughout the swing.`
+        message: `Body tracking was too unstable — only ${Math.round(validRatio * 100)}% of frames had the golfer in view. Try better lighting or making sure you stay in frame throughout the swing.`
       };
     }
 
@@ -118,6 +134,16 @@ const AnalysisModule = (() => {
     // 6. Calculate overall score
     const overall = calculateOverall(phaseScores);
 
+    // Confidence — a blend of the frame ratio and the average upper-body
+    // landmark visibility across analyzable frames. Used by the UI to
+    // surface a "low confidence" warning instead of silently scoring junk.
+    let avgVis = 0;
+    for (const f of analyzableFrames) avgVis += avgUpperVisibility(f.landmarks);
+    avgVis = analyzableFrames.length > 0 ? avgVis / analyzableFrames.length : 0;
+    const confidence = Math.round(
+      (validRatio * 0.6 + avgVis * 0.4) * 100
+    );
+
     return {
       error: false,
       score: overall.score,
@@ -129,6 +155,8 @@ const AnalysisModule = (() => {
       frameCount: analyzableFrames.length,
       totalFrames: frames.length,
       validRatio: Math.round(validRatio * 100),
+      confidence,                      // 0–100
+      lowConfidence: confidence < 60,   // UI flag
       duration: (analyzableFrames[analyzableFrames.length - 1].timestamp - analyzableFrames[0].timestamp) / 1000
     };
   }

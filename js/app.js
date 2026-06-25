@@ -668,7 +668,8 @@
     }
 
     showTab('screen-analyzing');
-    UIModule.setProgress(2, 'Loading video...');
+    UIModule.setLoaderStep('validate');
+    UIModule.setProgress(2, 'Loading video…');
 
     // Make sure Pose is ready (it normally inits on first preview).
     if (!poseReady) {
@@ -718,6 +719,10 @@
     // Reset frame buffer
     PoseModule.startCollecting();
 
+    // ---- Step 2: detect body across frames
+    UIModule.setLoaderStep('detect');
+    UIModule.setProgress(8, 'Detecting body…');
+
     // Seek & process each frame.
     for (let i = 0; i < totalFrames; i++) {
       const t = (i / fps);
@@ -726,33 +731,82 @@
         await PoseModule.sendFrame(v);
       } catch (_) {}
       if (i % 5 === 0) {
-        const pct = 5 + Math.floor((i / totalFrames) * 70);
-        UIModule.setProgress(pct, `Extracting pose data... ${i}/${totalFrames}`);
+        const pct = 8 + Math.floor((i / totalFrames) * 60);
+        UIModule.setProgress(pct, `Reading frame ${i}/${totalFrames}…`);
       }
     }
 
     const frameData = PoseModule.stopCollecting();
     URL.revokeObjectURL(url);
 
-    UIModule.setProgress(80, 'Analyzing swing mechanics...');
-    await sleep(200);
-    const result = AnalysisModule.analyze(frameData);
-    UIModule.setProgress(95, 'Finalizing...');
-    await sleep(200);
-    UIModule.setProgress(100, 'Complete!');
-    await sleep(300);
+    // ---- Step 3: phases
+    UIModule.setLoaderStep('phases');
+    UIModule.setProgress(72, 'Finding swing phases…');
+    await sleep(250);
 
-    const club = document.getElementById('club-select').value;
-    if (!result.error) {
-      saveSwing(result, club);
-      currentResult = result;
-      UIModule.renderAnalysis(result);
-      showTab('tab-analysis');
-    } else {
+    const result = AnalysisModule.analyze(frameData);
+
+    // ---- Step 4: ball (estimation only for now)
+    UIModule.setLoaderStep('ball');
+    UIModule.setProgress(85, 'Tracking ball flight…');
+    await sleep(250);
+
+    // ---- Step 5: score
+    UIModule.setLoaderStep('score');
+    UIModule.setProgress(95, 'Scoring impact…');
+    await sleep(250);
+    UIModule.setProgress(100, 'Done');
+    await sleep(200);
+
+    if (result.error) {
       alert(result.message || 'Could not detect a swing in this video. Make sure the full body is visible.');
       showTab('tab-record');
-      startCameraPreview();
+      setRecordMode('upload');
+      return;
     }
+
+    // Low-confidence → confirm with the user before showing scores
+    if (result.lowConfidence) {
+      const proceed = await showLowConfidenceModal(result.confidence);
+      if (!proceed) {
+        showTab('tab-record');
+        setRecordMode('upload');
+        // Reopen the file picker so the user can quickly try another
+        setTimeout(() => { fileInput.value = ''; fileInput.click(); }, 200);
+        return;
+      }
+    }
+
+    const club = document.getElementById('club-select').value;
+    saveSwing(result, club);
+    currentResult = result;
+    UIModule.renderAnalysis(result);
+    showTab('tab-analysis');
+  }
+
+  /**
+   * Show the low-confidence modal and resolve(true) on Continue, false on Choose Another.
+   */
+  function showLowConfidenceModal(confidence) {
+    const modal = document.getElementById('lowconf-modal');
+    const pct   = document.getElementById('lowconf-pct');
+    const ok    = document.getElementById('lowconf-continue');
+    const no    = document.getElementById('lowconf-cancel');
+    if (!modal) return Promise.resolve(true);
+    pct.textContent = `${confidence}%`;
+    modal.classList.remove('hidden');
+    return new Promise(resolve => {
+      const cleanup = (val) => {
+        modal.classList.add('hidden');
+        ok.removeEventListener('click', onOk);
+        no.removeEventListener('click', onNo);
+        resolve(val);
+      };
+      const onOk = () => cleanup(true);
+      const onNo = () => cleanup(false);
+      ok.addEventListener('click', onOk);
+      no.addEventListener('click', onNo);
+    });
   }
 
   /** Seek a video to time `t` and resolve when the frame is ready. */
@@ -805,32 +859,45 @@
   }
 
   async function runAnalysis(frameData) {
-    UIModule.setProgress(10, 'Processing pose data...');
-    await sleep(300);
-    UIModule.setProgress(30, 'Detecting swing phases...');
-    await sleep(300);
-    UIModule.setProgress(60, 'Analyzing body mechanics...');
-    await sleep(300);
+    UIModule.setLoaderStep('detect');
+    UIModule.setProgress(15, 'Reading body landmarks…');
+    await sleep(250);
+    UIModule.setLoaderStep('phases');
+    UIModule.setProgress(45, 'Finding swing phases…');
+    await sleep(250);
 
     const result = AnalysisModule.analyze(frameData);
 
-    UIModule.setProgress(85, 'Estimating impact point...');
-    await sleep(300);
-    UIModule.setProgress(100, 'Complete!');
-    await sleep(400);
+    UIModule.setLoaderStep('ball');
+    UIModule.setProgress(70, 'Tracking ball flight…');
+    await sleep(250);
+    UIModule.setLoaderStep('score');
+    UIModule.setProgress(92, 'Scoring impact…');
+    await sleep(250);
+    UIModule.setProgress(100, 'Done');
+    await sleep(200);
 
-    const club = document.getElementById('club-select').value;
-
-    if (!result.error) {
-      saveSwing(result, club);
-      currentResult = result;
-      UIModule.renderAnalysis(result);
-      showTab('tab-analysis');
-    } else {
+    if (result.error) {
       alert(result.message || 'Analysis failed. Please try again.');
       showTab('tab-record');
       startCameraPreview();
+      return;
     }
+
+    if (result.lowConfidence) {
+      const proceed = await showLowConfidenceModal(result.confidence);
+      if (!proceed) {
+        showTab('tab-record');
+        startCameraPreview();
+        return;
+      }
+    }
+
+    const club = document.getElementById('club-select').value;
+    saveSwing(result, club);
+    currentResult = result;
+    UIModule.renderAnalysis(result);
+    showTab('tab-analysis');
   }
 
 
@@ -855,8 +922,10 @@
   renderJournal();
 
   // ===== DEMO MODE =====
-  // ?demo=upload  → jump to Record screen with Upload mode active.
-  // ?demo=upload-err → same but pre-fills a hard-block error banner.
+  // ?demo=upload     → Upload mode entry
+  // ?demo=upload-err → Upload mode with hard-block error pre-filled
+  // ?demo=loading    → Just show the rolling-ball loader walking the 5 steps
+  // ?demo=lowconf    → Show the low-confidence modal
   const _ds = new URLSearchParams(location.search).get('demo');
   if (_ds === 'upload' || _ds === 'upload-err') {
     showTab('tab-record');
@@ -867,6 +936,32 @@
         '<em>swing_practice_4k.mov</em> is <strong>187 MB</strong> — the limit is <strong>100 MB</strong>. Try trimming it or exporting at a lower resolution.'
       );
     }
+    return;
+  }
+  if (_ds === 'loading') {
+    showTab('screen-analyzing');
+    (async () => {
+      const steps = [
+        { key: 'validate', pct: 8,  text: 'Loading video…' },
+        { key: 'detect',   pct: 35, text: 'Detecting body…' },
+        { key: 'phases',   pct: 60, text: 'Finding swing phases…' },
+        { key: 'ball',     pct: 80, text: 'Tracking ball flight…' },
+        { key: 'score',    pct: 95, text: 'Scoring impact…' }
+      ];
+      for (const s of steps) {
+        UIModule.setLoaderStep(s.key);
+        UIModule.setProgress(s.pct, s.text);
+        await new Promise(r => setTimeout(r, 1400));
+      }
+      UIModule.setProgress(100, 'Done');
+    })();
+    return;
+  }
+  if (_ds === 'lowconf') {
+    showTab('tab-record');
+    showLowConfidenceModal(42).then(ok => {
+      console.log(ok ? 'User chose Continue' : 'User chose Choose Another');
+    });
     return;
   }
 
