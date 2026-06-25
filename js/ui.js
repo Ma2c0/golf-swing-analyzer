@@ -96,18 +96,12 @@ const UIModule = (() => {
     const el    = document.getElementById('ball-status');
     const title = document.getElementById('ball-status-title');
     const body  = document.getElementById('ball-status-body');
-    const markBtn = document.getElementById('ball-mark-btn');
     if (!el) return;
 
-    if (!ball) { el.classList.add('hidden'); if (markBtn) markBtn.classList.add('hidden'); return; }
+    if (!ball) { el.classList.add('hidden'); return; }
 
     // Strip any previous mood classes
     el.classList.remove('mood-soft');
-
-    // The "Tap to mark ball" CTA is offered whenever tracking isn’t solid
-    // (no track or fully estimated). Hidden when we have a clean track.
-    const cleanTrack = ball.tracked && ball.speedMph != null && !ball.speedRough && !hasEstimatedPoints(ball);
-    if (markBtn) markBtn.classList.toggle('hidden', cleanTrack);
 
     // State 1: fully tracked + reliable speed
     if (ball.tracked && ball.speedMph != null && !ball.speedRough && !hasEstimatedPoints(ball)) {

@@ -39,9 +39,9 @@ const BallTrackModule = (() => {
   const G_METRES = 9.81;                 // gravity
 
   // Detection tunables
-  const ROI_PADDING_NORM = 0.18;   // was 0.10 鈥?widen club-head ROI
-  const BRIGHT_THRESHOLD = 200;
-  const MIN_BLOB_PIX     = 4;
+  const ROI_PADDING_NORM = 0.18;
+  const BRIGHT_THRESHOLD = 170;   // was 200 - tolerate shadowed white balls
+  const MIN_BLOB_PIX     = 2;     // was 4 - 720p balls can be only ~8px diameter
   const MAX_BLOB_PIX     = 240;
   // Ball sanity filter: must sit in the lower portion of the frame so white
   // shoes / gloves / caps higher up don't poison the search.
@@ -93,18 +93,16 @@ const BallTrackModule = (() => {
           if (d < bestDt) { bestDt = d; bestIdx = i; }
         }
       }
-      const t = frameTime(frames[bestIdx]);
-      await seekVideo(videoEl, isFinite(t) ? t : (videoEl.currentTime || 0));
-      ctx.drawImage(videoEl, 0, 0, w, h);
-      const cx = m.x * w, cy = m.y * h;
-      const half = Math.max(30, w * 0.05);
-      const roi  = clampRect({ x: cx - half, y: cy - half, w: half * 2, h: half * 2 }, w, h);
-      let pixR = 5;
-      if (roi) {
-        const blob = findBrightBlob(ctx, roi);
-        if (blob) anchor = { idx: bestIdx, t, x: blob.x / w, y: blob.y / h, pixR: blob.radius };
-      }
-      if (!anchor) anchor = { idx: bestIdx, t, x: m.x, y: m.y, pixR };
+      // Trust the click verbatim - no refinement. Auto-detect already
+      // failed; the user has higher signal than another blob search.
+      anchor = {
+        idx: bestIdx,
+        t:   frameTime(frames[bestIdx]),
+        x:   m.x,
+        y:   m.y,
+        pixR: 5,
+        manual: true
+      };
       anyRoiHadFrame = true;
     } else {
       // Auto mode 鈥?try Setup鈫扵op window first (ball stationary), then rest.
@@ -212,21 +210,22 @@ const BallTrackModule = (() => {
         }
       }
     } else if (trajectory.length === 1) {
-      // Single real hit \u2014 fall back to wrist-velocity direction (B6)
-      const v = wristVelocityAtImpact(frames, phases, w, h);
-      if (v) {
-        direction = directionFromVelocity(v);
-        const projected = projectile(
-          trajectory[0],
-          v,
-          120,   // assume ~120 px/m if no scale info
-          w, h
-        );
-        for (const pt of projected) {
-          points.push({ x: pt.x, y: pt.y, estimated: true });
-        }
-        speedRough = true; // anything we report is rough
+      // Single anchor (manual or 1 lucky auto hit). Always project an arc,
+      // even if wrist velocity is unusable - the user gave us a starting
+      // point and they want to see SOMETHING.
+      let v = wristVelocityAtImpact(frames, phases, w, h);
+      if (!v || !isFinite(v.vx) || !isFinite(v.vy)) {
+        // Default: ball flies up + slightly to the right (typical right-hander
+        // DTL shot). Normalized units per second - magnitude tuned so the arc
+        // visibly crosses the frame.
+        v = { vx: 0.6, vy: -1.4 };
       }
+      direction = directionFromVelocity(v);
+      const projected = projectile(trajectory[0], v, 120, w, h);
+      for (const pt of projected) {
+        points.push({ x: pt.x, y: pt.y, estimated: true });
+      }
+      speedRough = true;
     } else {
       // No real detection at all \u2014 try fully-estimated trajectory using
       // wrist velocity + plausible address point between the feet.
@@ -389,7 +388,7 @@ const BallTrackModule = (() => {
       const max = Math.max(d[p], d[p+1], d[p+2]);
       const min = Math.min(d[p], d[p+1], d[p+2]);
       const sat = max > 0 ? (max - min) / max : 0;
-      mask[i] = (lum >= BRIGHT_THRESHOLD && sat < 0.25) ? 1 : 0;
+      mask[i] = (lum >= BRIGHT_THRESHOLD && sat < 0.45) ? 1 : 0;  // wider sat tolerance
     }
     const visited = new Uint8Array(W * H);
     const blobs = [];
