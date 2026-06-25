@@ -737,7 +737,12 @@
     }
 
     const frameData = PoseModule.stopCollecting();
-    URL.revokeObjectURL(url);
+    // Keep the blob URL alive — the Analysis screen needs it for playback.
+    // Stash + clean up the previous one so we don't leak.
+    if (window.__lastSwingVideoUrl) {
+      try { URL.revokeObjectURL(window.__lastSwingVideoUrl); } catch (_) {}
+    }
+    window.__lastSwingVideoUrl = url;
 
     // ---- Step 3: phases
     UIModule.setLoaderStep('phases');
@@ -778,6 +783,7 @@
     }
 
     const club = document.getElementById('club-select').value;
+    result.videoUrl = url;  // pass to Analysis screen
     saveSwing(result, club);
     currentResult = result;
     UIModule.renderAnalysis(result);

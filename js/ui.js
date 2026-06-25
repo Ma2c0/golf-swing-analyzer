@@ -95,11 +95,23 @@ const UIModule = (() => {
     const dur = document.getElementById('a-video-duration');
     if (!video || !playBtn) return;
 
+    // Required for autoplay/seek on iOS Safari and to ensure the first frame
+    // renders before any play interaction.
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
+
     // Hook video source if available
     const src = result.videoUrl || window.__lastSwingVideoUrl || null;
     if (src && video.src !== src) {
       video.src = src;
       video.load();
+      // Seek to t=0 once metadata is ready so the poster frame shows
+      // instead of the gradient fallback background.
+      video.addEventListener('loadedmetadata', () => {
+        try { video.currentTime = 0.01; } catch (_) {}
+      }, { once: true });
     }
 
     const fmt = (s) => {

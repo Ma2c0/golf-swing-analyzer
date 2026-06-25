@@ -627,11 +627,21 @@ html, body {
   margin-bottom: 1.1rem;
   box-shadow: 0 8px 24px rgba(60,40,20,0.12);
 }
+/* Empty fallback shown when no video is attached yet. Sits behind the
+   <video> element so as soon as a real source loads, the video itself
+   covers the gradient. */
+.a-video-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #4a6b3e 0%, #6b8a5a 50%, #8aa872 100%);
+  z-index: 0;
+}
 .a-video {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  object-fit: cover;
-  background: linear-gradient(180deg, #4a6b3e 0%, #6b8a5a 50%, #8aa872 100%);
+  object-fit: contain;   /* keep the user's framing (no crop) */
+  background: transparent;
+  z-index: 1;
 }
 .a-pose-overlay {
   position: absolute; inset: 0;
