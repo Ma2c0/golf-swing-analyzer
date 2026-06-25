@@ -180,12 +180,27 @@
       const sessionNum = swings.length - idx;
       const color = UIModule.scoreColor(sw.score);
 
-      // Ball metrics + tooltip when not tracked
+      // Ball metrics + tooltip
+      //   - clean tracked      : show clean speed/direction
+      //   - rough/estimated    : prefix "~" + tooltip explaining estimation
+      //   - not tracked at all : em-dash + tooltip with reason
       const b = sw.ball;
       let speedHtml, dirHtml;
-      if (b && b.tracked && b.speedMph) {
+      const isClean = b && b.tracked && b.speedMph != null && !b.speedRough && !ballHasEstimated(b);
+      const isRough = b && (b.points && b.points.length >= 2) && !isClean;
+      if (isClean) {
         speedHtml = `<span class="j-ball-speed">${b.speedMph}<span class="j-ball-unit"> mph</span></span>`;
         dirHtml   = `<span class="j-ball-dir tier-${dirTier(b.direction)}" title="Ball direction: ${b.direction}">${b.direction}</span>`;
+      } else if (isRough) {
+        const tip = b.fullyEstimated
+          ? 'Trajectory is a physics-based estimate from your swing motion'
+          : 'Partial track + extrapolated; values are approximate';
+        const speedTxt = b.speedMph != null
+          ? `~${b.speedMph}<span class="j-ball-unit"> mph</span>`
+          : '~';
+        speedHtml = `<span class="j-ball-speed na" title="${tip}">${speedTxt}</span>`;
+        const dirTxt = b.direction ? `~${b.direction}` : '—';
+        dirHtml   = `<span class="j-ball-dir na" title="${tip}">${dirTxt}</span>`;
       } else {
         const tip = ballMissingTip(b);
         speedHtml = `<span class="j-ball-speed na" title="${tip}">—</span>`;
@@ -214,6 +229,11 @@
     if (/(pull|hook)/i.test(d)) return 'bad';
     if (/(slice|push|fade)/i.test(d)) return 'mid';
     return 'mid';
+  }
+  function ballHasEstimated(ball) {
+    if (!ball || !ball.points) return false;
+    for (const p of ball.points) if (p.estimated) return true;
+    return false;
   }
   function ballMissingTip(b) {
     if (!b) return 'Ball not tracked';

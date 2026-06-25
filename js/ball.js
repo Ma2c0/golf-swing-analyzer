@@ -1,49 +1,64 @@
 /**
  * Ball-tracking module.
  *
- * Strategy for uploaded videos (Algorithm 2, see issue 2026-06-24):
- *  1. Find the impact frame index (handed in by AnalysisModule).
- *  2. Build an ROI in front of the estimated club head (which we approximate
- *     from wrist + elbow landmarks projected forward) ~0.2s before impact.
- *     This dramatically narrows the search vs scanning the whole frame.
- *  3. Find the brightest, roundest small white blob in that ROI \u2014 that's
- *     the static ball at address.
- *  4. From the impact frame forward, scan ~12 frames looking for the same
- *     blob within a growing search radius (the ball accelerates, so the
- *     window expands frame to frame).
- *  5. Output a trajectory polyline (in normalized 0..1 coords), an estimate
- *     of ball speed (mph), and a left/straight/right direction label.
+ * Strategy (updated 2026-06-24, per "Path-A + physics fallback" plan):
  *
- * Output object shape:
+ *  1. Scan the entire pose-frame sequence for the first frame where we can
+ *     spot the ball inside an ROI (club-head projection OR between the
+ *     feet). That frame becomes our tracking anchor \u2014 it does NOT have
+ *     to be the Setup frame.
+ *
+ *  2. From the anchor frame forward, attempt to follow the ball blob
+ *     across frames (search radius grows with frame index).
+ *
+ *  3. If we lose the ball but already have at least 2 real points, fit a
+ *     velocity vector to the last 2-3 real points and roll forward with
+ *     a 2D projectile (gravity only, no drag/spin) until the ball would
+ *     leave the frame. Those points are flagged `estimated = true` so
+ *     the UI can draw them as dashed/translucent.
+ *
+ *  4. If we never find the ball at all, fall back to the wrists\u2019
+ *     velocity at the impact frame as a *very rough* direction hint,
+ *     and project a short estimated arc from a plausible address point
+ *     (between the feet). Marked `estimated:true` end-to-end.
+ *
+ * Output:
  *   {
- *     tracked: true|false,
- *     points:   [{x,y}, ...]  // normalized 0..1, in chronological order
- *     speedMph: number,        // approximate, may be \u00b120mph
- *     direction: 'Pull'|'Straight'|'Slice'|'Pull-Hook'|'Push-Slice',
- *     reason?:  string         // why tracking failed (when tracked=false)
+ *     tracked:      true|false,   // true when at least 1 real ball hit was found
+ *     fullyEstimated: bool,       // true when ALL points come from physics only
+ *     points: [{x,y,estimated?}], // normalized 0..1; real points lack `estimated`
+ *     speedMph:    number|null,   // only present when reasonably confident
+ *     speedRough:  bool,          // when speed should be displayed as "~XX mph"
+ *     direction:   string|null,
+ *     reason?:     string         // present when tracked=false (no usable data at all)
  *   }
  */
 const BallTrackModule = (() => {
 
-  // A regulation golf ball is 42.67mm in diameter \u2014 used to convert pixel
-  // distances into real-world metres.
   const BALL_DIAMETER_M = 0.04267;
+  const G_METRES = 9.81;                 // gravity
 
-  // Tunables
-  const SEARCH_FRAMES_AFTER = 12;   // how many frames after impact to scan
-  const SEARCH_FRAMES_BEFORE = 6;   // how many frames before impact to look for the address ball
-  const ROI_PADDING_NORM   = 0.10;  // ROI half-size around predicted club head, in normalized coords
-  const BRIGHT_THRESHOLD   = 200;   // 0\u2013255 luminance for "white-ish" pixel
-  const MIN_BLOB_PIX       = 6;     // min connected-pixel count to be considered a ball
-  const MAX_BLOB_PIX       = 220;   // max so we ignore large white objects (shirts, walls)
+  // Detection tunables
+  const ROI_PADDING_NORM = 0.10;
+  const BRIGHT_THRESHOLD = 200;
+  const MIN_BLOB_PIX     = 4;
+  const MAX_BLOB_PIX     = 240;
+
+  // Forward tracking
+  const MAX_FORWARD_FRAMES = 18;         // how many post-anchor frames to scan
+  const MAX_LOSS_TOLERANCE = 3;          // give up after N consecutive misses
+
+  // Physics extrapolation
+  const EXTRAP_MAX_FRAMES = 30;          // hard cap on projected points
+  const EXTRAP_DT         = 0.020;       // seconds per projected step (~50fps)
 
   /**
    * Main entry point.
    *
-   * @param {HTMLVideoElement} videoEl  \u2014 the (already-loaded) video
-   * @param {Array} frames               \u2014 PoseModule frameData (same shape as AnalysisModule expects)
-   * @param {Object} phases              \u2014 detectPhases() output
-   * @param {function} onProgress        \u2014 optional progress callback (0..1)
+   * @param {HTMLVideoElement} videoEl
+   * @param {Array} frames           PoseModule frameData
+   * @param {Object} phases          detectPhases() output
+   * @param {function} onProgress    0..1
    * @returns {Promise<Object>}
    */
   async function track(videoEl, frames, phases, onProgress) {
@@ -51,163 +66,174 @@ const BallTrackModule = (() => {
       return { tracked: false, reason: 'missing-inputs' };
     }
 
-    const impactIdx = clampIdx(phases.impactFrame, frames);
-    const setupTime = frameTime(frames[Math.max(0, impactIdx - SEARCH_FRAMES_BEFORE)]);
-    const impactTime = frameTime(frames[impactIdx]);
-    if (!isFinite(setupTime) || !isFinite(impactTime)) {
-      return { tracked: false, reason: 'no-timestamps' };
-    }
-
-    // Set up scratch canvases
     const w = videoEl.videoWidth  || 1280;
     const h = videoEl.videoHeight || 720;
-    const sourceCv = document.createElement('canvas');
-    sourceCv.width = w; sourceCv.height = h;
-    const sourceCx = sourceCv.getContext('2d', { willReadFrequently: true });
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
 
-    // --- Phase 1: find the address ball -----------------------------------
-    // Try multiple ROIs per frame so this works for DTL (club-head forward)
-    // AND face-on (between/below the feet). First hit wins.
-    let addressBall = null;
+    // ---- Step 1: scan ALL frames to find the first one with a ball ----
+    // We don\u2019t insist on the Setup frame \u2014 any frame where we can spot
+    // the ball inside a sensible ROI is good enough as an anchor.
+    let anchor = null;
     let anyRoiHadFrame = false;
-    for (let i = SEARCH_FRAMES_BEFORE; i >= 0 && !addressBall; i--) {
-      const fIdx = Math.max(0, impactIdx - i);
-      const t = frameTime(frames[fIdx]);
+    const N = frames.length;
+    for (let i = 0; i < N; i++) {
+      const t = frameTime(frames[i]);
       if (!isFinite(t)) continue;
-      const rois = candidateRois(frames[fIdx], w, h);
+      const rois = candidateRois(frames[i], w, h);
       if (rois.length === 0) continue;
       anyRoiHadFrame = true;
       await seekVideo(videoEl, t);
-      sourceCx.drawImage(videoEl, 0, 0, w, h);
+      ctx.drawImage(videoEl, 0, 0, w, h);
       for (const roi of rois) {
-        const blob = findBrightBlob(sourceCx, roi);
+        const blob = findBrightBlob(ctx, roi);
         if (blob) {
-          addressBall = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
+          anchor = { idx: i, t, x: blob.x / w, y: blob.y / h, pixR: blob.radius };
           break;
         }
       }
-      if (onProgress) onProgress((SEARCH_FRAMES_BEFORE - i) / (SEARCH_FRAMES_BEFORE * 2 + SEARCH_FRAMES_AFTER));
-    }
-    if (!addressBall) {
-      // Distinguish "we never even built an ROI" from "we built ROIs but
-      // found nothing white in them" — the latter usually means the ball
-      // is out of frame.
-      return {
-        tracked: false,
-        reason: anyRoiHadFrame ? 'ball-not-in-frame' : 'no-roi'
-      };
+      if (anchor) break;
+      if (onProgress && (i % 4 === 0)) onProgress(i / (N + EXTRAP_MAX_FRAMES));
     }
 
-    // --- Phase 2: track forward through impact + follow-through ----------
-    const trajectory = [addressBall];
-    let last = addressBall;
-    // search radius grows: ball accelerates fast post-impact
-    const baseRadius = Math.max(40, last.pixR * 6);
-    for (let k = 1; k <= SEARCH_FRAMES_AFTER; k++) {
-      const fi = impactIdx + k;
-      if (fi >= frames.length) break;
-      const t = frameTime(frames[fi]);
-      if (!isFinite(t)) continue;
-      await seekVideo(videoEl, t);
-      sourceCx.drawImage(videoEl, 0, 0, w, h);
+    // ---- Step 2: forward tracking from anchor ----
+    let trajectory = [];      // real-detected ball positions
+    if (anchor) {
+      trajectory.push({ x: anchor.x, y: anchor.y, t: anchor.t, pixR: anchor.pixR });
+      let last = trajectory[0];
+      let lost = 0;
+      const baseRadius = Math.max(36, anchor.pixR * 6);
 
-      // Search window grows with k. Centered on the last known position +
-      // a forward bias along the recent direction of travel.
-      const cx = last.x * w;
-      const cy = last.y * h;
-      let bias = { x: 0, y: 0 };
-      if (trajectory.length >= 2) {
-        const prev = trajectory[trajectory.length - 2];
-        bias = {
-          x: (last.x - prev.x) * w * (1 + k * 0.3),
-          y: (last.y - prev.y) * h * (1 + k * 0.3)
+      for (let k = 1; k <= MAX_FORWARD_FRAMES; k++) {
+        const fi = anchor.idx + k;
+        if (fi >= N) break;
+        const t = frameTime(frames[fi]);
+        if (!isFinite(t)) continue;
+        await seekVideo(videoEl, t);
+        ctx.drawImage(videoEl, 0, 0, w, h);
+
+        const cx = last.x * w;
+        const cy = last.y * h;
+        let bias = { x: 0, y: 0 };
+        if (trajectory.length >= 2) {
+          const prev = trajectory[trajectory.length - 2];
+          bias = {
+            x: (last.x - prev.x) * w * (1 + k * 0.3),
+            y: (last.y - prev.y) * h * (1 + k * 0.3)
+          };
+        }
+        const radius = baseRadius * (1 + k * 0.35);
+        const roi = clampRect({
+          x: cx + bias.x - radius,
+          y: cy + bias.y - radius,
+          w: radius * 2,
+          h: radius * 2
+        }, w, h);
+        if (!roi) { lost++; if (lost > MAX_LOSS_TOLERANCE) break; continue; }
+
+        const blob = findBrightBlob(ctx, roi, last);
+        if (blob) {
+          const pt = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
+          trajectory.push(pt);
+          last = pt;
+          lost = 0;
+        } else {
+          lost++;
+          if (lost > MAX_LOSS_TOLERANCE) break;
+        }
+      }
+    }
+
+    // ---- Step 3: build the final trajectory (real + estimated) ----
+    let points = trajectory.map(p => ({ x: p.x, y: p.y }));
+    let speedMph = null;
+    let speedRough = false;
+    let direction = null;
+    let fullyEstimated = false;
+    let reason;
+
+    if (trajectory.length >= 2) {
+      // We have at least two real points \u2014 compute pixel velocity, real
+      // speed in mph, then keep projecting until the arc leaves the frame.
+      const v = computeVelocity(trajectory, w, h);
+      const { mph, pxPerMetre } = estimateSpeed(trajectory, w, h);
+      speedMph = mph != null ? Math.round(mph) : null;
+      // Out-of-range speeds are flagged "rough" rather than hidden
+      if (speedMph != null && (speedMph < 30 || speedMph > 220)) {
+        speedRough = true;
+      }
+      direction = directionFromVelocity(v);
+
+      // Extend with physics if the last real point is still inside the frame
+      const lastReal = trajectory[trajectory.length - 1];
+      if (insideFrame(lastReal.x, lastReal.y)) {
+        const projected = projectile(
+          lastReal,
+          v,         // {vx, vy} in normalized units per second
+          pxPerMetre,
+          w, h
+        );
+        for (const pt of projected) {
+          points.push({ x: pt.x, y: pt.y, estimated: true });
+        }
+      }
+    } else if (trajectory.length === 1) {
+      // Single real hit \u2014 fall back to wrist-velocity direction (B6)
+      const v = wristVelocityAtImpact(frames, phases, w, h);
+      if (v) {
+        direction = directionFromVelocity(v);
+        const projected = projectile(
+          trajectory[0],
+          v,
+          120,   // assume ~120 px/m if no scale info
+          w, h
+        );
+        for (const pt of projected) {
+          points.push({ x: pt.x, y: pt.y, estimated: true });
+        }
+        speedRough = true; // anything we report is rough
+      }
+    } else {
+      // No real detection at all \u2014 try fully-estimated trajectory using
+      // wrist velocity + plausible address point between the feet.
+      const v = wristVelocityAtImpact(frames, phases, w, h);
+      const anchorPt = guessAddressPoint(frames, phases);
+      if (v && anchorPt) {
+        fullyEstimated = true;
+        direction = directionFromVelocity(v);
+        speedRough = true;
+        // No real speed reference, leave speedMph null.
+        const projected = projectile(anchorPt, v, 120, w, h);
+        points.push({ x: anchorPt.x, y: anchorPt.y, estimated: true });
+        for (const pt of projected) {
+          points.push({ x: pt.x, y: pt.y, estimated: true });
+        }
+      } else {
+        return {
+          tracked: false,
+          reason: anyRoiHadFrame ? 'ball-not-in-frame' : 'no-roi'
         };
       }
-      const radius = baseRadius * (1 + k * 0.35);
-      const roi = clampRect({
-        x: Math.max(0, cx + bias.x - radius),
-        y: Math.max(0, cy + bias.y - radius),
-        w: radius * 2,
-        h: radius * 2
-      }, w, h);
-      if (!roi) break;
-
-      const blob = findBrightBlob(sourceCx, roi, last);
-      if (!blob) {
-        // try one more frame before giving up
-        if (k > 4 && trajectory.length >= 4) break;
-        continue;
-      }
-      const pt = { x: blob.x / w, y: blob.y / h, t, pixR: blob.radius };
-      trajectory.push(pt);
-      last = pt;
-
-      if (onProgress) {
-        onProgress((SEARCH_FRAMES_BEFORE + k) / (SEARCH_FRAMES_BEFORE * 2 + SEARCH_FRAMES_AFTER));
-      }
     }
 
-    // Need at least 3 trajectory points to estimate speed/direction
-    if (trajectory.length < 3) {
-      return { tracked: false, reason: 'lost-after-impact', points: trajectory.map(p => ({ x: p.x, y: p.y })) };
-    }
-
-    // --- Phase 3: estimate speed & direction -----------------------------
-    const start = trajectory[0];
-    const end   = trajectory[trajectory.length - 1];
-    const dt    = end.t - start.t;
-    const pixDx = (end.x - start.x) * w;
-    const pixDy = (end.y - start.y) * h;
-    const pixDist = Math.sqrt(pixDx * pixDx + pixDy * pixDy);
-
-    // Pixels-per-metre from ball diameter (use average pixel radius across trajectory)
-    let avgR = 0; let n = 0;
-    for (const p of trajectory) { if (p.pixR) { avgR += p.pixR; n++; } }
-    avgR = n > 0 ? (avgR / n) : 6;
-    const pxPerMetre = (2 * avgR) / BALL_DIAMETER_M;
-
-    const metres = pixDist / pxPerMetre;
-    const mps    = dt > 0 ? metres / dt : 0;
-    const mph    = mps * 2.23694;
-
-    // Direction: angle of travel in the frame plane.
-    // For DTL view (looking down the line), the ball normally travels mostly
-    // away from camera (small movement in image plane), but lateral pull/slice
-    // shows clearly as horizontal drift.
-    const angleDeg = Math.atan2(pixDx, -pixDy) * 180 / Math.PI;
-    let direction;
-    if (angleDeg < -25)      direction = 'Pull';
-    else if (angleDeg < -10) direction = 'Pull-Draw';
-    else if (angleDeg > 25)  direction = 'Slice';
-    else if (angleDeg > 10)  direction = 'Push-Fade';
-    else                     direction = 'Straight';
-
-    // Sanity-check the speed estimate. A wedge can hit ~90 mph ball; a
-    // driver ~170 mph. Anything outside 30\u2013220 mph is almost certainly
-    // a tracking artefact.
-    if (mph < 30 || mph > 220) {
-      return {
-        tracked: true,
-        points: trajectory.map(p => ({ x: p.x, y: p.y })),
-        speedMph: null,
-        direction,
-        reason: 'speed-out-of-range'
-      };
+    if (points.length < 2) {
+      return { tracked: false, reason: 'too-few-points' };
     }
 
     return {
-      tracked: true,
-      points: trajectory.map(p => ({ x: p.x, y: p.y })),
-      speedMph: Math.round(mph),
-      direction
+      tracked: trajectory.length >= 1,
+      fullyEstimated,
+      points,
+      speedMph: speedRough ? null : speedMph,
+      speedRough,
+      direction,
+      reason
     };
   }
 
-  /* -------------------- helpers -------------------- */
+  /* ============= helpers ============= */
 
-  function clampIdx(i, frames) {
-    return Math.max(0, Math.min(frames.length - 1, i | 0));
-  }
   function frameTime(f) {
     if (!f) return NaN;
     return (f.videoTime != null) ? f.videoTime : NaN;
@@ -225,45 +251,32 @@ const BallTrackModule = (() => {
   }
 
   /**
-   * Return one or more pixel-space ROIs where the ball might be at address.
-   *  - ROI 1 (DTL-style): in front of the projected club head
-   *  - ROI 2 (face-on / always-on): between the feet at ground level
-   * We always include ROI 2 because it costs nothing and dramatically
-   * improves face-on coverage.
+   * Two candidate ROIs per frame: club-head projection (DTL) and
+   * between-the-feet ground area (face-on; also useful for DTL).
    */
   function candidateRois(frame, w, h) {
     const out = [];
     const lm = frame && frame.landmarks;
     if (!lm) return out;
-
     const LW = lm[15], RW = lm[16], LE = lm[13], RE = lm[14];
-    const LA = lm[27], RA = lm[28];   // ankles
-    const LK = lm[25], RK = lm[26];   // knees
+    const LA = lm[27], RA = lm[28];
+    const LK = lm[25], RK = lm[26];
     const pad = ROI_PADDING_NORM * Math.max(w, h);
 
-    // -- ROI 1: club head projection (DTL style) --
     if (LW && RW && LE && RE
         && (LW.visibility ?? 0) >= 0.3 && (RW.visibility ?? 0) >= 0.3) {
-      const wristX = (LW.x + RW.x) / 2;
-      const wristY = (LW.y + RW.y) / 2;
-      const elbowX = (LE.x + RE.x) / 2;
-      const elbowY = (LE.y + RE.y) / 2;
-      const dx = wristX - elbowX;
-      const dy = wristY - elbowY;
-      const len = Math.sqrt(dx * dx + dy * dy);
+      const wristX = (LW.x + RW.x) / 2, wristY = (LW.y + RW.y) / 2;
+      const elbowX = (LE.x + RE.x) / 2, elbowY = (LE.y + RE.y) / 2;
+      const dx = wristX - elbowX, dy = wristY - elbowY;
+      const len = Math.hypot(dx, dy);
       if (len >= 0.01) {
-        const clubScale = 0.40;
-        const headX = wristX + (dx / len) * clubScale;
-        const headY = wristY + (dy / len) * clubScale;
-        const cx = headX * w;
-        const cy = (headY + 0.02) * h;
-        const r = clampRect({ x: cx - pad, y: cy - pad, w: pad * 2, h: pad * 2 }, w, h);
+        const headX = wristX + (dx / len) * 0.40;
+        const headY = wristY + (dy / len) * 0.40;
+        const r = clampRect({ x: headX * w - pad, y: (headY + 0.02) * h - pad, w: pad * 2, h: pad * 2 }, w, h);
         if (r) out.push(r);
       }
     }
 
-    // -- ROI 2: between/below the feet (face-on style; works for DTL too) --
-    // Use ankles if visible, else fall back to knees.
     let footL = null, footR = null;
     if (LA && RA && (LA.visibility ?? 0) >= 0.25 && (RA.visibility ?? 0) >= 0.25) {
       footL = LA; footR = RA;
@@ -273,17 +286,10 @@ const BallTrackModule = (() => {
     if (footL && footR) {
       const midX = (footL.x + footR.x) / 2;
       const midY = (footL.y + footR.y) / 2;
-      // Stance width gives us a width estimate for the ROI — cap it so
-      // we don't search the entire image when ankles are misdetected.
       const stance = Math.abs(footL.x - footR.x);
       const halfW = Math.max(pad, Math.min(stance * w * 0.7, w * 0.18));
-      // Sweep from feet level slightly upward, since the ball sits in front
-      // of the player (between heels) and may project above the ankle line.
       const halfH = Math.max(pad, h * 0.10);
-      const cx = midX * w;
-      // Bias down ~3% so the ROI includes the ground line, not just feet.
-      const cy = (midY + 0.03) * h;
-      const r = clampRect({ x: cx - halfW, y: cy - halfH, w: halfW * 2, h: halfH * 2 }, w, h);
+      const r = clampRect({ x: midX * w - halfW, y: (midY + 0.03) * h - halfH, w: halfW * 2, h: halfH * 2 }, w, h);
       if (r) out.push(r);
     }
 
@@ -299,31 +305,20 @@ const BallTrackModule = (() => {
     return { x, y, w: rw, h: rh };
   }
 
-  /**
-   * Find the brightest small round blob inside an ROI.
-   * Optional `lastBall` lets us prefer blobs of similar size for tracking.
-   * Returns { x, y, radius } in *image* coords, or null.
-   */
   function findBrightBlob(ctx, roi, lastBall) {
     let imgData;
     try { imgData = ctx.getImageData(roi.x, roi.y, roi.w, roi.h); }
     catch (_) { return null; }
     const d = imgData.data;
     const W = roi.w, H = roi.h;
-
-    // Simple luminance threshold mask
     const mask = new Uint8Array(W * H);
     for (let p = 0, i = 0; p < d.length; p += 4, i++) {
-      // Quick luminance approximation
       const lum = (d[p] * 0.299 + d[p+1] * 0.587 + d[p+2] * 0.114) | 0;
-      // Also require fairly desaturated (white-ish, not green grass)
       const max = Math.max(d[p], d[p+1], d[p+2]);
       const min = Math.min(d[p], d[p+1], d[p+2]);
       const sat = max > 0 ? (max - min) / max : 0;
       mask[i] = (lum >= BRIGHT_THRESHOLD && sat < 0.25) ? 1 : 0;
     }
-
-    // Connected-component labeling (flood fill) to find blob centroids
     const visited = new Uint8Array(W * H);
     const blobs = [];
     const stack = [];
@@ -331,7 +326,6 @@ const BallTrackModule = (() => {
       for (let x = 0; x < W; x++) {
         const idx = y * W + x;
         if (!mask[idx] || visited[idx]) continue;
-        // BFS over this connected blob
         let count = 0, sumX = 0, sumY = 0;
         let minX = x, maxX = x, minY = y, maxY = y;
         stack.length = 0; stack.push(idx);
@@ -349,37 +343,159 @@ const BallTrackModule = (() => {
           if (cx < W - 1 && mask[ci + 1] && !visited[ci + 1]) stack.push(ci + 1);
           if (cy > 0 && mask[ci - W] && !visited[ci - W]) stack.push(ci - W);
           if (cy < H - 1 && mask[ci + W] && !visited[ci + W]) stack.push(ci + W);
-          if (count > MAX_BLOB_PIX) break; // bail: too large to be a ball
+          if (count > MAX_BLOB_PIX) break;
         }
         if (count < MIN_BLOB_PIX || count > MAX_BLOB_PIX) continue;
         const bw = maxX - minX + 1;
         const bh = maxY - minY + 1;
         const aspect = bw / Math.max(1, bh);
-        if (aspect < 0.5 || aspect > 2.0) continue;
-        const cxAvg = sumX / count;
-        const cyAvg = sumY / count;
-        const radius = Math.sqrt(count / Math.PI);
+        if (aspect < 0.4 || aspect > 2.5) continue;
         blobs.push({
-          x: roi.x + cxAvg,
-          y: roi.y + cyAvg,
-          radius,
+          x: roi.x + sumX / count,
+          y: roi.y + sumY / count,
+          radius: Math.sqrt(count / Math.PI),
           count
         });
       }
     }
     if (blobs.length === 0) return null;
-
-    // Pick the best blob. If we have a previous frame, prefer similar radius.
     blobs.sort((a, b) => {
       if (lastBall) {
-        const da = Math.abs(a.radius - lastBall.pixR);
-        const db = Math.abs(b.radius - lastBall.pixR);
-        return da - db;
+        return Math.abs(a.radius - lastBall.pixR) - Math.abs(b.radius - lastBall.pixR);
       }
-      // Otherwise just take the smallest reasonable blob (closer to a ball)
       return Math.abs(a.radius - 6) - Math.abs(b.radius - 6);
     });
     return blobs[0];
+  }
+
+  /**
+   * Compute normalized velocity (units per second) from the last 2-3 points.
+   */
+  function computeVelocity(trajectory) {
+    const tail = trajectory.slice(-3);
+    const a = tail[0];
+    const b = tail[tail.length - 1];
+    const dt = b.t - a.t;
+    if (dt <= 0) return { vx: 0, vy: 0 };
+    return { vx: (b.x - a.x) / dt, vy: (b.y - a.y) / dt };
+  }
+
+  /**
+   * Convert pixel distance + ball-radius scale to a real speed (mph).
+   */
+  function estimateSpeed(trajectory, w, h) {
+    let avgR = 0, n = 0;
+    for (const p of trajectory) { if (p.pixR) { avgR += p.pixR; n++; } }
+    avgR = n > 0 ? avgR / n : 6;
+    const pxPerMetre = (2 * avgR) / BALL_DIAMETER_M;
+    const a = trajectory[0];
+    const b = trajectory[trajectory.length - 1];
+    const dt = b.t - a.t;
+    if (dt <= 0) return { mph: null, pxPerMetre };
+    const pixDist = Math.hypot((b.x - a.x) * w, (b.y - a.y) * h);
+    const metres = pixDist / pxPerMetre;
+    const mph = (metres / dt) * 2.23694;
+    return { mph, pxPerMetre };
+  }
+
+  /**
+   * Direction label from a velocity vector in normalized image coords.
+   * Assumes typical DTL/face-on framing: upward motion is target-line forward.
+   */
+  function directionFromVelocity(v) {
+    const angleDeg = Math.atan2(v.vx, -v.vy) * 180 / Math.PI;
+    if (angleDeg < -25)      return 'Pull';
+    if (angleDeg < -10)      return 'Pull-Draw';
+    if (angleDeg >  25)      return 'Slice';
+    if (angleDeg >  10)      return 'Push-Fade';
+    return 'Straight';
+  }
+
+  /**
+   * 2D projectile motion in *image space*. Gravity acts downward (+y in
+   * image coords). Steps until the projected point leaves the frame.
+   */
+  function projectile(start, v0, pxPerMetre, w, h) {
+    const out = [];
+    // Convert image-Y velocity to metres/sec to apply gravity, then back.
+    const px2m = 1 / pxPerMetre;
+    // vy in normalized: 1 unit = full image height. metres-per-second:
+    // vy_m = v0.vy * h * px2m
+    let x = start.x, y = start.y;
+    let vx = v0.vx;        // normalized per second
+    let vy = v0.vy;        // normalized per second
+    const aY_m = G_METRES; // m/s^2 downward
+    // image-Y/s^2 gravity expressed in normalized units:
+    // a_norm = aY_m * pxPerMetre / h * dt... but we just integrate per step.
+    const dt = EXTRAP_DT;
+    for (let i = 0; i < EXTRAP_MAX_FRAMES; i++) {
+      // Apply gravity in *image* units (downward).
+      vy += (aY_m * pxPerMetre / h) * dt;
+      x  += vx * dt;
+      y  += vy * dt;
+      if (!insideFrame(x, y, 0.06)) {
+        // Add one final point just at the edge so the line touches the frame.
+        out.push({ x: clamp01(x), y: clamp01(y) });
+        break;
+      }
+      out.push({ x, y });
+    }
+    return out;
+  }
+
+  function insideFrame(x, y, margin = 0) {
+    return x > -margin && x < 1 + margin && y > -margin && y < 1 + margin;
+  }
+  function clamp01(v) { return Math.max(-0.05, Math.min(1.05, v)); }
+
+  /**
+   * Estimate wrist velocity around the impact frame in normalized units/sec.
+   * Used as a coarse direction proxy when ball detection fails entirely.
+   */
+  function wristVelocityAtImpact(frames, phases, w, h) {
+    const i = Math.max(0, Math.min(frames.length - 2, phases.impactFrame | 0));
+    const a = frames[Math.max(0, i - 2)];
+    const b = frames[Math.min(frames.length - 1, i + 2)];
+    if (!a || !b) return null;
+    const ta = frameTime(a), tb = frameTime(b);
+    if (!isFinite(ta) || !isFinite(tb) || tb <= ta) return null;
+    const wristA = wristMid(a);
+    const wristB = wristMid(b);
+    if (!wristA || !wristB) return null;
+    // Direction the hands are moving. Scale up to make it visually plausible
+    // for a ball (the ball goes much faster than the hands at impact \u2014
+    // multiply by ~3 so the projected arc isn\u2019t pathetic).
+    const dt = tb - ta;
+    return {
+      vx: ((wristB.x - wristA.x) / dt) * 3,
+      vy: ((wristB.y - wristA.y) / dt) * 3
+    };
+  }
+  function wristMid(frame) {
+    const lw = frame.landmarks[15], rw = frame.landmarks[16];
+    if (!lw || !rw) return null;
+    if ((lw.visibility ?? 0) < 0.25 && (rw.visibility ?? 0) < 0.25) return null;
+    return { x: (lw.x + rw.x) / 2, y: (lw.y + rw.y) / 2 };
+  }
+
+  /**
+   * Guess where the ball would be at address: between the feet at ground
+   * level. Returns normalized {x,y} or null.
+   */
+  function guessAddressPoint(frames, phases) {
+    const i = Math.max(0, Math.min(frames.length - 1, phases.setup | 0));
+    const f = frames[i] || frames[0];
+    const lm = f.landmarks;
+    const LA = lm[27], RA = lm[28];
+    const LK = lm[25], RK = lm[26];
+    let footL = null, footR = null;
+    if (LA && RA && (LA.visibility ?? 0) >= 0.2 && (RA.visibility ?? 0) >= 0.2) {
+      footL = LA; footR = RA;
+    } else if (LK && RK && (LK.visibility ?? 0) >= 0.2 && (RK.visibility ?? 0) >= 0.2) {
+      footL = LK; footR = RK;
+    }
+    if (!footL || !footR) return null;
+    return { x: (footL.x + footR.x) / 2, y: Math.min(0.95, (footL.y + footR.y) / 2 + 0.04) };
   }
 
   return { track };

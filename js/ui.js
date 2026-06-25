@@ -86,10 +86,11 @@ const UIModule = (() => {
   }
 
   /**
-   * Show / hide the ball-tracking status banner under the Analysis video.
-   * - tracked + speed: hidden (the trajectory overlay is enough)
-   * - tracked but speed unreliable: amber notice
-   * - not tracked: amber notice with reason-specific copy
+   * Three states for the ball-status banner:
+   *  1. tracked fully + real speed   → hidden (trajectory speaks for itself)
+   *  2. tracked partially / fully estimated → soft cream-green hint:
+   *     "Trajectory is estimated"
+   *  3. not tracked at all (no points) → amber error with reason copy
    */
   function renderBallStatus(ball) {
     const el    = document.getElementById('ball-status');
@@ -98,8 +99,31 @@ const UIModule = (() => {
     if (!el) return;
 
     if (!ball) { el.classList.add('hidden'); return; }
-    if (ball.tracked && ball.speedMph) { el.classList.add('hidden'); return; }
 
+    // Strip any previous mood classes
+    el.classList.remove('mood-soft');
+
+    // State 1: fully tracked + reliable speed
+    if (ball.tracked && ball.speedMph != null && !ball.speedRough && !hasEstimatedPoints(ball)) {
+      el.classList.add('hidden');
+      return;
+    }
+
+    // State 2: trajectory exists but with estimated portion (or rough speed)
+    if (ball.points && ball.points.length >= 2) {
+      el.classList.remove('hidden');
+      el.classList.add('mood-soft');
+      if (ball.fullyEstimated) {
+        title.textContent = 'Trajectory is estimated';
+        body.textContent  = "We couldn\u2019t see the ball in your recording. The dashed line is a physics-based guess from your swing motion \u2014 take it as a hint, not a measurement.";
+      } else {
+        title.textContent = 'Partial trajectory';
+        body.textContent  = 'We tracked the ball for a few frames after impact, then extrapolated the rest with physics. Solid line = tracked, dashed = estimated.';
+      }
+      return;
+    }
+
+    // State 3: nothing at all
     const REASONS = {
       'no-ball-found-at-address':
         ['Ball not visible at address',
@@ -113,12 +137,12 @@ const UIModule = (() => {
       'no-roi':
         ['Couldn\u2019t lock onto your stance',
          'We need your feet visible to know where to look for the ball. Make sure your full body is in the frame.'],
+      'too-few-points':
+        ['Not enough motion captured',
+         'We saw the ball briefly but couldn\u2019t build a trajectory. Try a longer recording.'],
       'no-phases':
         ['Swing phases not detected',
          'Without phase detection we can\u2019t aim the ball search. Try a clearer recording.'],
-      'speed-out-of-range':
-        ['Ball speed not reliable',
-         'We tracked the ball but the speed estimate looked unrealistic. Direction is shown but speed is hidden.'],
       'missing-inputs':
         ['Tracking inputs missing',
          'Something went wrong loading the video for tracking. Try re-uploading.'],
@@ -133,6 +157,12 @@ const UIModule = (() => {
     title.textContent = t;
     body.textContent  = b;
     el.classList.remove('hidden');
+  }
+
+  function hasEstimatedPoints(ball) {
+    if (!ball || !ball.points) return false;
+    for (const p of ball.points) if (p.estimated) return true;
+    return false;
   }
 
   /**
@@ -271,28 +301,55 @@ const UIModule = (() => {
     canvas.style.height = rect.height + 'px';
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!ball || !ball.tracked || !ball.points || ball.points.length < 2) return;
+    if (!ball || !ball.points || ball.points.length < 2) return;
 
     const w = canvas.width, h = canvas.height;
     const pts = ball.points;
 
-    // Glowing dashed trajectory in clay-orange
-    ctx.save();
-    ctx.strokeStyle = '#D56F55';
-    ctx.lineWidth = Math.max(2, w * 0.005);
-    ctx.setLineDash([w * 0.012, w * 0.008]);
-    ctx.shadowColor = 'rgba(213,111,85,0.7)';
-    ctx.shadowBlur = 14;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x * w, pts[0].y * h);
-    for (let i = 1; i < pts.length; i++) {
-      ctx.lineTo(pts[i].x * w, pts[i].y * h);
+    // Split into a leading "real" segment and a trailing "estimated" segment.
+    // The boundary is the last point that is NOT marked estimated.
+    let lastReal = -1;
+    for (let i = 0; i < pts.length; i++) {
+      if (!pts[i].estimated) lastReal = i;
     }
-    ctx.stroke();
-    ctx.restore();
 
-    // Starting ball marker
+    const lineW = Math.max(2, w * 0.005);
+
+    // ---- Real segment: solid orange line ----
+    if (lastReal >= 1) {
+      ctx.save();
+      ctx.strokeStyle = '#D56F55';
+      ctx.lineWidth = lineW;
+      ctx.shadowColor = 'rgba(213,111,85,0.7)';
+      ctx.shadowBlur = 14;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x * w, pts[0].y * h);
+      for (let i = 1; i <= lastReal; i++) {
+        ctx.lineTo(pts[i].x * w, pts[i].y * h);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ---- Estimated segment: dashed, half-opacity, no glow ----
+    if (lastReal < pts.length - 1) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(213, 111, 85, 0.55)';
+      ctx.lineWidth = lineW * 0.9;
+      ctx.setLineDash([w * 0.014, w * 0.010]);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const startIdx = Math.max(0, lastReal);
+      ctx.moveTo(pts[startIdx].x * w, pts[startIdx].y * h);
+      for (let i = startIdx + 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x * w, pts[i].y * h);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ---- Start marker (white ball) ----
     const start = pts[0];
     ctx.save();
     ctx.fillStyle = '#fff';
@@ -303,16 +360,78 @@ const UIModule = (() => {
     ctx.fill();
     ctx.restore();
 
-    // Endpoint marker (clay)
-    const end = pts[pts.length - 1];
+    // ---- End marker (only for real endpoint, not estimated) ----
+    if (lastReal >= 0 && lastReal < pts.length - 1) {
+      // There IS an estimated tail — mark where real ends and estimate begins
+      const end = pts[lastReal];
+      ctx.save();
+      ctx.fillStyle = '#D56F55';
+      ctx.shadowColor = 'rgba(213,111,85,0.6)';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(end.x * w, end.y * h, Math.max(5, w * 0.01), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // "estimated" pill label near the start of the dashed segment
+      drawEstimatedLabel(ctx, pts[lastReal], pts[lastReal + 1], w, h);
+    } else if (lastReal === pts.length - 1) {
+      // Purely real — mark the final point with the orange dot.
+      const end = pts[lastReal];
+      ctx.save();
+      ctx.fillStyle = '#D56F55';
+      ctx.shadowColor = 'rgba(213,111,85,0.6)';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(end.x * w, end.y * h, Math.max(5, w * 0.01), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      // Fully estimated trajectory — add the label near the start.
+      drawEstimatedLabel(ctx, pts[0], pts[1], w, h);
+    }
+  }
+
+  /**
+   * Small "estimated" pill, positioned just offset from the boundary point,
+   * along the perpendicular of the next segment’s direction.
+   */
+  function drawEstimatedLabel(ctx, p0, p1, w, h) {
+    const x0 = p0.x * w, y0 = p0.y * h;
+    const x1 = p1.x * w, y1 = p1.y * h;
+    const dx = x1 - x0, dy = y1 - y0;
+    const len = Math.hypot(dx, dy) || 1;
+    // perpendicular (right-hand side)
+    const px = -dy / len, py = dx / len;
+    const offset = Math.max(14, w * 0.025);
+    const cx = x0 + dx * 0.45 + px * offset;
+    const cy = y0 + dy * 0.45 + py * offset;
+    const font = `${Math.max(10, w * 0.018)}px Inter, sans-serif`;
     ctx.save();
-    ctx.fillStyle = '#D56F55';
-    ctx.shadowColor = 'rgba(213,111,85,0.6)';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(end.x * w, end.y * h, Math.max(5, w * 0.01), 0, Math.PI * 2);
+    ctx.font = font;
+    const text = 'estimated';
+    const tw = ctx.measureText(text).width;
+    const padX = 8, padY = 4;
+    const boxW = tw + padX * 2, boxH = parseFloat(font) + padY * 2;
+    // pill bg
+    ctx.fillStyle = 'rgba(42, 38, 32, 0.7)';
+    roundRectPath(ctx, cx - boxW / 2, cy - boxH / 2, boxW, boxH, 100);
     ctx.fill();
+    ctx.fillStyle = '#FBF3E4';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, cx, cy + 0.5);
     ctx.restore();
+  }
+  function roundRectPath(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
   }
 
   function renderSwingPanel(result) {

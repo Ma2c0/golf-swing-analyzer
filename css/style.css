@@ -732,6 +732,14 @@ html, body {
   color: #4d3700;
   margin-bottom: .1rem;
 }
+/* Soft mood: partial track / fully estimated — friendly cream-green */
+.ball-status.mood-soft {
+  background: linear-gradient(135deg, #EEF2E5 0%, #DDE6CF 100%);
+  border-color: rgba(63, 95, 69, 0.25);
+  color: #2D4632;
+}
+.ball-status.mood-soft > svg { color: var(--moss); }
+.ball-status.mood-soft .ball-status-text strong { color: #2D4632; }
 .a-video-duration {
   position: absolute;
   bottom: 12px; right: 12px;
