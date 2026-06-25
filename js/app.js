@@ -321,7 +321,15 @@
   const btnZoomIn     = document.getElementById('btn-zoom-in');
   const btnZoomOut    = document.getElementById('btn-zoom-out');
   const btnWide       = document.getElementById('btn-wide');
+  const btnCamFlip    = document.getElementById('btn-cam-flip');
+  const camPreview    = document.getElementById('cam-preview');
   const zoomLabel     = document.getElementById('zoom-level');
+
+  /** Update the .mirrored class on the preview based on current facing. */
+  function updateMirrorState() {
+    if (!camPreview) return;
+    camPreview.classList.toggle('mirrored', CameraModule.getFacing() === 'user');
+  }
 
   let isRecording   = false;
   let animFrameId   = null;
@@ -356,9 +364,16 @@
       CameraModule.detectZoom();
       cameraRunning = true;
       updateZoomUI();
+      updateMirrorState();
       updateChecklist();
 
       PoseModule.setOnPose(landmarks => {
+        // When mirrored (front camera), the visible image is flipped
+        // horizontally for the user, but MediaPipe still sees the
+        // original frame. We pass the unmodified data through, since
+        // analysis logic doesn't care about display orientation —
+        // it only cares that the *labels* (left/right shoulder etc) are
+        // consistent. Per Q3 plan: mirror display only, leave data alone.
         const required = [11,12,13,14,15,16,23,24,25,26,27,28];
         bodyVisible = required.every(i => landmarks[i] && landmarks[i].visibility > 0.5);
         updateChecklist();
@@ -426,6 +441,29 @@
       updateZoomUI();
     }
   });
+
+  // Camera flip (front <-> back)
+  if (btnCamFlip) {
+    btnCamFlip.addEventListener('click', async () => {
+      btnCamFlip.disabled = true;
+      try {
+        const wasRunningPose = poseReady && cameraRunning;
+        await CameraModule.toggleFacing(videoEl);
+        updateMirrorState();
+        // Some browsers fire onloadedmetadata again after stream swap; ensure
+        // playback continues.
+        try { await videoEl.play(); } catch (_) {}
+        if (wasRunningPose) {
+          // Pose module is fine, it just sees a different stream now.
+        }
+        updateZoomUI();
+      } catch (e) {
+        console.warn('Camera flip failed:', e);
+      } finally {
+        btnCamFlip.disabled = false;
+      }
+    });
+  }
 
   // Debug: force-show wide button via ?wide=1 (so you can see the UI on desktop).
   if (new URLSearchParams(location.search).get('wide') === '1') {

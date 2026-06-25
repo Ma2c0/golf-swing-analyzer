@@ -188,6 +188,31 @@ html, body {
 .cam-preview canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
 }
+/* Front-facing mirror: flip preview horizontally (looks natural like a mirror).
+   We compensate landmark coordinates in app.js so pose left/right stays correct. */
+.cam-preview.mirrored video,
+.cam-preview.mirrored canvas {
+  transform: scaleX(-1);
+}
+
+/* Camera flip button (top-right of preview) */
+.cam-flip-btn {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 12;
+  transition: transform 0.2s, background 0.15s;
+}
+.cam-flip-btn:hover { background: rgba(0, 0, 0, 0.7); }
+.cam-flip-btn:active { transform: scale(0.9) rotate(180deg); }
+.cam-flip-btn svg { width: 20px; height: 20px; }
 
 /* Corner brackets */
 .bracket {

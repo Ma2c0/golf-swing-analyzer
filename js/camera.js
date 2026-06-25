@@ -31,28 +31,48 @@ const CameraModule = (() => {
   let usingUltraWide = false;        // true when we have switched to the ultra-wide stream
   let ultraWideAvailable = false;    // true if either a UW device or native zoom <1× exists
 
+  // Front/back facing
+  let currentFacing = 'user';        // default to front (per user spec)
+  function getFacing() { return currentFacing; }
+
   /**
    * Request rear-facing camera access (DTL).
    * Tries to use an ultra-wide lens when one is exposed.
    * @returns {Promise<MediaStream>}
    */
   async function init() {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
+    // Try the preferred facing first, then fall back to the other one.
+    // Default preferred = 'user' (front).
+    const tryFacing = async (facing) => {
+      return await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: 'environment' },
+          facingMode: { ideal: facing },
           width:  { ideal: 1920 },
           height: { ideal: 1080 },
           frameRate: { ideal: 30 }
         },
         audio: false
       });
+    };
+    try {
+      try {
+        stream = await tryFacing(currentFacing);
+      } catch (err) {
+        // Permission errors should not silently retry on the other camera.
+        if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+          throw err;
+        }
+        // OverconstrainedError / NotFoundError / etc — try the opposite camera.
+        const alt = currentFacing === 'user' ? 'environment' : 'user';
+        stream = await tryFacing(alt);
+        currentFacing = alt;
+      }
 
       // After permission is granted, probe for a dedicated ultra-wide lens.
       await probeUltraWide();
       return stream;
     } catch (err) {
-      if (err.name === 'NotAllowedError') {
+      if (err && err.name === 'NotAllowedError') {
         throw new Error('Camera permission denied. Please allow camera access and try again.');
       }
       throw new Error('Could not access camera: ' + err.message);
@@ -60,14 +80,63 @@ const CameraModule = (() => {
   }
 
   /**
+   * Switch between user (front) and environment (back) cameras. Returns the
+   * new facing string on success.
+   */
+  async function toggleFacing(videoEl) {
+    const target = currentFacing === 'user' ? 'environment' : 'user';
+    return await setFacing(target, videoEl);
+  }
+
+  async function setFacing(facing, videoEl) {
+    if (facing !== 'user' && facing !== 'environment') return currentFacing;
+    if (facing === currentFacing && stream) return currentFacing;
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: facing },
+          width:  { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 }
+        },
+        audio: false
+      });
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = newStream;
+      currentFacing = facing;
+      usingUltraWide = false;
+      currentZoom = 1.0;
+      // Re-probe ultra-wide for the new facing (front normally has none).
+      ultraWideDeviceId = null;
+      ultraWideAvailable = false;
+      await probeUltraWide();
+      detectZoom();
+      if (videoEl) {
+        videoEl.srcObject = stream;
+        try { await videoEl.play(); } catch (_) {}
+      }
+      return currentFacing;
+    } catch (err) {
+      console.warn('setFacing failed:', err);
+      return currentFacing;
+    }
+  }
+
+  /**
    * Look through enumerated video inputs for an ultra-wide back lens.
    * Sets `ultraWideDeviceId` and `ultraWideAvailable` for later use.
+   * Front cameras rarely have ultra-wide — we only probe when on 'environment'.
    */
   async function probeUltraWide() {
+    // Skip entirely for the front camera (per user spec: hide UW when no UW lens)
+    if (currentFacing !== 'environment') {
+      ultraWideDeviceId = null;
+      ultraWideAvailable = false;
+      return;
+    }
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cams = devices.filter(d => d.kind === 'videoinput');
-      // Common label patterns across iOS Safari / Android Chrome.
       const re = /(ultra[\s-]?wide|0\.?5x|wide angle|wideangle|超广角)/i;
       const front = /front|user|self/i;
       const candidate = cams.find(d => re.test(d.label) && !front.test(d.label));
@@ -298,6 +367,9 @@ const CameraModule = (() => {
 
   return {
     init,
+    toggleFacing,
+    setFacing,
+    getFacing,
     attachToVideo,
     startRecording,
     stopRecording,
