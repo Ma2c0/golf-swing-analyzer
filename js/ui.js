@@ -89,6 +89,12 @@ const UIModule = (() => {
    * with the result (if any); otherwise just shows the placeholder gradient.
    * Center play button hides on play and returns when the video ends.
    */
+  // Module-level state used by phase click handler
+  let _videoEl       = null;
+  let _videoPlayBtn  = null;
+  let _activeClip    = null;   // { start, end } or null = play full video
+  let _clipWatcher   = null;   // RAF id
+
   function setupAnalysisVideo(result) {
     const video = document.getElementById('a-video');
     const playBtn = document.getElementById('a-play-btn');
@@ -132,26 +138,130 @@ const UIModule = (() => {
     playBtn.classList.remove('hidden');
     video.pause();
 
-    // Remove any previous handlers via cloning
+    // Replace any previous click handler via cloning to drop old listeners
     const fresh = playBtn.cloneNode(true);
     playBtn.parentNode.replaceChild(fresh, playBtn);
+
+    _videoEl      = video;
+    _videoPlayBtn = fresh;
+    _activeClip   = null;
+
+    // Draw the ball trajectory overlay (if tracked)
+    drawBallTrajectoryOverlay(result.ball);
+
     fresh.addEventListener('click', () => {
       if (!video.src) {
-        // No video to play — just briefly hide the button as a demo cue
         fresh.classList.add('hidden');
         setTimeout(() => fresh.classList.remove('hidden'), 1800);
         return;
       }
       fresh.classList.add('hidden');
-      video.currentTime = 0;
-      video.play().catch(() => fresh.classList.remove('hidden'));
+      // Replay whichever clip is currently selected, or the full video.
+      const clip = _activeClip;
+      if (clip) playClipRange(clip.start, clip.end);
+      else {
+        video.currentTime = 0;
+        video.play().catch(() => fresh.classList.remove('hidden'));
+      }
     });
     video.onended = () => fresh.classList.remove('hidden');
-    video.onpause = () => {
-      if (!video.ended && video.currentTime > 0 && video.currentTime < video.duration) {
-        // user-initiated pause via controls (rare) — leave button hidden if mid-play
-      }
+  }
+
+  /**
+   * Play a specific time range of the loaded video, then pause at the end.
+   * Hides the center play button while playing; brings it back when done.
+   */
+  function playClipRange(start, end) {
+    const v   = _videoEl;
+    const btn = _videoPlayBtn;
+    if (!v || !v.src) return;
+    if (_clipWatcher) { cancelAnimationFrame(_clipWatcher); _clipWatcher = null; }
+
+    const seekAndPlay = () => {
+      try { v.currentTime = Math.max(0, start); } catch (_) {}
+      if (btn) btn.classList.add('hidden');
+      v.play().then(() => {
+        const watch = () => {
+          if (v.paused || v.ended) {
+            if (btn) btn.classList.remove('hidden');
+            return;
+          }
+          if (v.currentTime >= end) {
+            v.pause();
+            try { v.currentTime = end; } catch (_) {}
+            if (btn) btn.classList.remove('hidden');
+            return;
+          }
+          _clipWatcher = requestAnimationFrame(watch);
+        };
+        _clipWatcher = requestAnimationFrame(watch);
+      }).catch(() => { if (btn) btn.classList.remove('hidden'); });
     };
+
+    if (v.readyState >= 1) seekAndPlay();
+    else v.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+  }
+
+  /** Set the active phase clip used by the center play button. */
+  function setActiveClip(clip) { _activeClip = clip || null; }
+
+  /**
+   * Render the ball-flight trajectory on top of the Analysis video card.
+   * Uses the canvas#a-pose-overlay. Clears the overlay when no track.
+   */
+  function drawBallTrajectoryOverlay(ball) {
+    const canvas = document.getElementById('a-pose-overlay');
+    const card   = document.getElementById('a-video-card');
+    if (!canvas || !card) return;
+    const rect = card.getBoundingClientRect();
+    canvas.width  = rect.width  * (window.devicePixelRatio || 1);
+    canvas.height = rect.height * (window.devicePixelRatio || 1);
+    canvas.style.width  = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!ball || !ball.tracked || !ball.points || ball.points.length < 2) return;
+
+    const w = canvas.width, h = canvas.height;
+    const pts = ball.points;
+
+    // Glowing dashed trajectory in clay-orange
+    ctx.save();
+    ctx.strokeStyle = '#D56F55';
+    ctx.lineWidth = Math.max(2, w * 0.005);
+    ctx.setLineDash([w * 0.012, w * 0.008]);
+    ctx.shadowColor = 'rgba(213,111,85,0.7)';
+    ctx.shadowBlur = 14;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * w, pts[0].y * h);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x * w, pts[i].y * h);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Starting ball marker
+    const start = pts[0];
+    ctx.save();
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(start.x * w, start.y * h, Math.max(4, w * 0.008), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Endpoint marker (clay)
+    const end = pts[pts.length - 1];
+    ctx.save();
+    ctx.fillStyle = '#D56F55';
+    ctx.shadowColor = 'rgba(213,111,85,0.6)';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(end.x * w, end.y * h, Math.max(5, w * 0.01), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function renderSwingPanel(result) {
@@ -281,7 +391,19 @@ const UIModule = (() => {
       if (cardImprove) cardImprove.classList.add('hidden');
       if (cardPraise) cardPraise.classList.add('hidden');
       if (cardFull) cardFull.classList.remove('hidden');
+      // Full Swing: play the whole video; clear any active clip.
+      setActiveClip(null);
+      if (_videoEl && _videoEl.src) playClipRange(0, _videoEl.duration || 999);
       return;
+    }
+
+    // ---- PHASE CLIPS ----
+    // Jump to & play this phase's time range, then keep it as the active clip
+    // so the center play button replays the same segment.
+    const clip = result && result.clips && result.clips[phaseKey];
+    if (clip && _videoEl && _videoEl.src) {
+      setActiveClip(clip);
+      playClipRange(clip.start, clip.end);
     }
 
     const data = phases[phaseKey];

@@ -134,6 +134,10 @@ const AnalysisModule = (() => {
     // 6. Calculate overall score
     const overall = calculateOverall(phaseScores);
 
+    // 7. Build per-phase video-time clips (start/end seconds + padding)
+    //    for the Analysis screen's tap-to-replay behavior.
+    const clips = buildClips(analyzableFrames, phases);
+
     // Confidence — a blend of the frame ratio and the average upper-body
     // landmark visibility across analyzable frames. Used by the UI to
     // surface a "low confidence" warning instead of silently scoring junk.
@@ -149,6 +153,8 @@ const AnalysisModule = (() => {
       score: overall.score,
       grade: overall.grade,
       phases: phaseScores,
+      rawPhases: phases,             // frame indices (used by ball tracker)
+      clips,                         // { setup, backswing, downswing, impact, followThrough }
       impact,
       issues: issues.problems,
       improvements: issues.suggestions,
@@ -158,6 +164,36 @@ const AnalysisModule = (() => {
       confidence,                      // 0–100
       lowConfidence: confidence < 60,   // UI flag
       duration: (analyzableFrames[analyzableFrames.length - 1].timestamp - analyzableFrames[0].timestamp) / 1000
+    };
+  }
+
+  /**
+   * Convert phase frame indices into clip time ranges in *video* seconds.
+   * Falls back to (timestamp - firstTs)/1000 when videoTime is missing.
+   * Adds 0.2s padding before/after each segment so the cut is not abrupt.
+   */
+  function buildClips(frames, phases) {
+    const PAD = 0.2;
+    const firstTs = frames[0].timestamp;
+    const tOf = (i) => {
+      const f = frames[Math.max(0, Math.min(frames.length - 1, i))];
+      // Prefer the real video time when known (uploaded videos), else fall
+      // back to elapsed wall-clock time relative to the first sample.
+      return (f.videoTime != null) ? f.videoTime : (f.timestamp - firstTs) / 1000;
+    };
+    const duration = tOf(frames.length - 1) - tOf(0);
+    const clamp = (s, e) => ({
+      start: Math.max(0, Math.min(s - PAD, duration)),
+      end:   Math.max(0, Math.min(e + PAD, duration))
+    });
+
+    return {
+      setup:         clamp(tOf(phases.setup),         tOf(phases.setupEnd)),
+      backswing:     clamp(tOf(phases.backswingStart), tOf(phases.top)),
+      downswing:     clamp(tOf(phases.downswingStart), tOf(phases.impactFrame)),
+      // Impact is a moment — give it ~0.4s window centered on the frame.
+      impact:        clamp(tOf(phases.impactFrame) - 0.2, tOf(phases.impactFrame) + 0.2),
+      followThrough: clamp(tOf(phases.followStart),   tOf(phases.finish))
     };
   }
 

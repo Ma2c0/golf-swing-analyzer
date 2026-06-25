@@ -4,8 +4,9 @@
  */
 const PoseModule = (() => {
   let pose = null;
-  let frameData = [];   // array of { timestamp, landmarks }
+  let frameData = [];   // array of { timestamp, landmarks, videoTime? }
   let collecting = false;
+  let nextVideoTime = null;   // if set, used as the timestamp for the next frame
   let overlayCtx = null;
   let videoWidth = 0;
   let videoHeight = 0;
@@ -95,8 +96,12 @@ const PoseModule = (() => {
       drawSkeleton(results.poseLandmarks);
 
       if (collecting) {
+        // For uploaded videos we know the exact in-video time of this frame;
+        // for live recording we fall back to wall-clock Date.now().
+        const useVideoTime = (nextVideoTime !== null);
         frameData.push({
-          timestamp: Date.now(),
+          timestamp: useVideoTime ? nextVideoTime * 1000 : Date.now(),
+          videoTime: useVideoTime ? nextVideoTime : null,
           landmarks: results.poseLandmarks.map(l => ({
             x: l.x,
             y: l.y,
@@ -172,17 +177,23 @@ const PoseModule = (() => {
 
   /**
    * Send a video frame for pose detection.
+   * `vTime` (optional, seconds): in-video time of this frame, used as the
+   * timestamp for uploaded-video analysis so phase frame indices can later
+   * be converted to playback times.
    */
-  async function sendFrame(videoEl) {
+  async function sendFrame(videoEl, vTime) {
     if (!pose) return;
     videoWidth = videoEl.videoWidth;
     videoHeight = videoEl.videoHeight;
+    nextVideoTime = (typeof vTime === 'number') ? vTime : null;
     await pose.send({ image: videoEl });
+    nextVideoTime = null;
   }
 
   function startCollecting() {
     frameData = [];
     collecting = true;
+    nextVideoTime = null;
   }
 
   function stopCollecting() {

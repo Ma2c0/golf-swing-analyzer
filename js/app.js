@@ -57,7 +57,8 @@
       issues: result.issues,
       improvements: result.improvements,
       frameCount: result.frameCount,
-      duration: result.duration
+      duration: result.duration,
+      ball: result.ball || null
     });
     if (swings.length > 50) swings.length = 50;
     localStorage.setItem('birdie_swings', JSON.stringify(swings));
@@ -178,18 +179,54 @@
       const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       const sessionNum = swings.length - idx;
       const color = UIModule.scoreColor(sw.score);
+
+      // Ball metrics + tooltip when not tracked
+      const b = sw.ball;
+      let speedHtml, dirHtml;
+      if (b && b.tracked && b.speedMph) {
+        speedHtml = `<span class="j-ball-speed">${b.speedMph}<span class="j-ball-unit"> mph</span></span>`;
+        dirHtml   = `<span class="j-ball-dir tier-${dirTier(b.direction)}" title="Ball direction: ${b.direction}">${b.direction}</span>`;
+      } else {
+        const tip = ballMissingTip(b);
+        speedHtml = `<span class="j-ball-speed na" title="${tip}">—</span>`;
+        dirHtml   = `<span class="j-ball-dir na"   title="${tip}">—</span>`;
+      }
+
       const row = document.createElement('div');
       row.className = 'j-entry';
       row.innerHTML = `
         <span class="j-date">${dateStr}</span>
         <span class="j-session">Session #${sessionNum}</span>
         <span class="j-club">${sw.club || '7-Iron'}</span>
+        ${speedHtml}
+        ${dirHtml}
         <span class="j-score" style="color:${color}">${sw.score}</span>
         <span class="j-arrow">&rsaquo;</span>
       `;
       row.addEventListener('click', () => openAnalysisForSwing(sw));
       list.appendChild(row);
     });
+  }
+
+  function dirTier(d) {
+    if (!d) return 'na';
+    if (/straight/i.test(d)) return 'good';
+    if (/(pull|hook)/i.test(d)) return 'bad';
+    if (/(slice|push|fade)/i.test(d)) return 'mid';
+    return 'mid';
+  }
+  function ballMissingTip(b) {
+    if (!b) return 'Ball not tracked';
+    const reasonMap = {
+      'no-ball-found-at-address': 'Could not find the ball at address',
+      'lost-after-impact': 'Lost the ball after impact',
+      'no-phases': 'Swing phases not detected',
+      'speed-out-of-range': 'Speed estimate was unreliable',
+      'missing-inputs': 'Tracking inputs missing',
+      'no-timestamps': 'Frame timestamps unavailable',
+      'exception': 'Tracking failed unexpectedly'
+    };
+    return reasonMap[b.reason] || 'Ball not tracked';
   }
 
   function openAnalysisForSwing(sw) {
@@ -723,12 +760,14 @@
     UIModule.setLoaderStep('detect');
     UIModule.setProgress(8, 'Detecting body…');
 
-    // Seek & process each frame.
+    // Seek & process each frame. Pass the in-video time so the pose module
+    // tags each landmark snapshot with a real video timestamp — phase
+    // detection later turns these into start/end clip times.
     for (let i = 0; i < totalFrames; i++) {
       const t = (i / fps);
       await seekTo(v, t);
       try {
-        await PoseModule.sendFrame(v);
+        await PoseModule.sendFrame(v, t);
       } catch (_) {}
       if (i % 5 === 0) {
         const pct = 8 + Math.floor((i / totalFrames) * 60);
@@ -751,10 +790,34 @@
 
     const result = AnalysisModule.analyze(frameData);
 
-    // ---- Step 4: ball (estimation only for now)
+    // ---- Step 4: real ball tracking via canvas pixel analysis
     UIModule.setLoaderStep('ball');
-    UIModule.setProgress(85, 'Tracking ball flight…');
-    await sleep(250);
+    UIModule.setProgress(78, 'Tracking ball flight…');
+    if (!result.error) {
+      try {
+        // Re-seek through the post-impact window with the same video element
+        const trackVid = document.createElement('video');
+        trackVid.src = url;
+        trackVid.muted = true;
+        trackVid.playsInline = true;
+        trackVid.crossOrigin = 'anonymous';
+        await new Promise(res => { trackVid.onloadedmetadata = () => res(); trackVid.onerror = () => res(); });
+        if (result.rawPhases) {
+          const ball = await BallTrackModule.track(
+            trackVid,
+            frameData,
+            result.rawPhases,
+            (p) => UIModule.setProgress(78 + Math.floor(p * 10), 'Tracking ball flight…')
+          );
+          result.ball = ball;
+        } else {
+          result.ball = { tracked: false, reason: 'no-phases' };
+        }
+      } catch (e) {
+        console.warn('Ball tracking failed:', e);
+        result.ball = { tracked: false, reason: 'exception' };
+      }
+    }
 
     // ---- Step 5: score
     UIModule.setLoaderStep('score');
@@ -968,6 +1031,44 @@
     showLowConfidenceModal(42).then(ok => {
       console.log(ok ? 'User chose Continue' : 'User chose Choose Another');
     });
+    return;
+  }
+  if (_ds === 'phases') {
+    // Demo: show Analysis screen with mock phase clips so the
+    // tap-to-replay behavior can be tested without a real video.
+    const demo = {
+      error: false, score: 72, grade: 'Good',
+      videoUrl: null,
+      clips: {
+        setup:         { start: 0,   end: 1.5 },
+        backswing:     { start: 1.3, end: 3.0 },
+        downswing:     { start: 2.8, end: 3.4 },
+        impact:        { start: 3.2, end: 3.6 },
+        followThrough: { start: 3.4, end: 5.0 }
+      },
+      phases: {
+        setup:        { score: 88, notes: [] },
+        backswing:    { score: 75, notes: ['Backswing slightly long.'] },
+        downswing:    { score: 60, notes: ['Hips start too late.'] },
+        impact:       { score: 65, notes: ['Hands slightly behind ball.'] },
+        followThrough:{ score: 80, notes: [] }
+      },
+      impact: { x: 0, y: 0, tendency: 'Center', description: 'Demo' },
+      issues: ['Demo issue 1', 'Demo issue 2'],
+      improvements: ['Demo improvement 1'],
+      ball: {
+        tracked: true,
+        speedMph: 118,
+        direction: 'Straight',
+        points: [
+          {x: 0.48, y: 0.72}, {x: 0.50, y: 0.68}, {x: 0.53, y: 0.60},
+          {x: 0.57, y: 0.48}, {x: 0.62, y: 0.34}, {x: 0.68, y: 0.18}
+        ]
+      }
+    };
+    currentResult = demo;
+    UIModule.renderAnalysis(demo);
+    showTab('tab-analysis');
     return;
   }
 
