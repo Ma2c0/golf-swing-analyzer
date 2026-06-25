@@ -1266,10 +1266,13 @@
     mbNext.addEventListener('click', () => {
       try { mbVideo.currentTime = Math.min(mbVideo.duration || 0, mbVideo.currentTime + STEP); } catch (_) {}
     });
-    mbStage.addEventListener('click', (e) => {
+    // Convert a pointer event to a normalized {x, y} inside the displayed
+    // video, accounting for object-fit: contain letterboxing. Returns null
+    // if the pointer is outside the video pixels.
+    function pointerToVideoNorm(clientX, clientY) {
       const rect = mbVideo.getBoundingClientRect();
-      const cx = e.clientX - rect.left;
-      const cy = e.clientY - rect.top;
+      const cx = clientX - rect.left;
+      const cy = clientY - rect.top;
       const vw = mbVideo.videoWidth  || rect.width;
       const vh = mbVideo.videoHeight || rect.height;
       const s  = Math.min(rect.width / vw, rect.height / vh);
@@ -1277,11 +1280,21 @@
       const ox = (rect.width - rw) / 2;
       const oy = (rect.height - rh) / 2;
       const px = cx - ox, py = cy - oy;
-      if (px < 0 || py < 0 || px > rw || py > rh) return;
-      _markBallPoint = { x: px / rw, y: py / rh, t: mbVideo.currentTime };
+      if (px < 0 || py < 0 || px > rw || py > rh) return null;
+      return { x: px / rw, y: py / rh };
+    }
+
+    // Update the anchor + Confirm button state from the current pointer
+    // location. Called on pointerdown AND every pointermove so the visible
+    // crosshair/loupe always matches what gets sent to the tracker.
+    function setMarkFromPointer(clientX, clientY) {
+      const n = pointerToVideoNorm(clientX, clientY);
+      if (!n) return false;
+      _markBallPoint = { x: n.x, y: n.y, t: mbVideo.currentTime };
       drawMarkBallOverlay();
       mbConfirm.disabled = false;
-    });
+      return true;
+    }
     mbConfirm.addEventListener('click', () => runManualBallTrack(_markBallPoint));
 
     // Skip button: continue without a manual mark.
@@ -1354,21 +1367,41 @@
     function hideLoupe() { mbLoupe.classList.add('hidden'); }
 
     function onPointerMove(e) {
+      // Update both the loupe AND the anchor position so what the user sees
+      // is what gets recorded. We throttle with RAF to stay smooth.
       if (loupeRaf) cancelAnimationFrame(loupeRaf);
       const x = e.clientX, y = e.clientY;
-      loupeRaf = requestAnimationFrame(() => drawLoupe(x, y));
+      loupeRaf = requestAnimationFrame(() => {
+        drawLoupe(x, y);
+        setMarkFromPointer(x, y);
+      });
     }
     mbStage.addEventListener('pointerdown', (e) => {
+      // Capture this pointer so we keep getting events even if the finger
+      // strays outside the stage element.
+      try { mbStage.setPointerCapture(e.pointerId); } catch (_) {}
       drawLoupe(e.clientX, e.clientY);
+      // Record the initial anchor immediately — this is the point the user
+      // is aiming at. Subsequent pointermoves update it while finger is down,
+      // and pointerup leaves the LAST recorded position untouched.
+      setMarkFromPointer(e.clientX, e.clientY);
       mbStage.addEventListener('pointermove', onPointerMove);
     });
-    const endLoupe = () => {
+    const endLoupe = (e) => {
       mbStage.removeEventListener('pointermove', onPointerMove);
+      if (loupeRaf) { cancelAnimationFrame(loupeRaf); loupeRaf = null; }
       hideLoupe();
+      try { if (e && e.pointerId != null) mbStage.releasePointerCapture(e.pointerId); } catch (_) {}
+      // IMPORTANT: do NOT recompute the anchor on pointerup — the last
+      // position recorded during pointermove (or pointerdown if no move) is
+      // exactly where the user wanted, so leave _markBallPoint alone.
     };
     mbStage.addEventListener('pointerup', endLoupe);
     mbStage.addEventListener('pointercancel', endLoupe);
-    mbStage.addEventListener('pointerleave', endLoupe);
+    // Pointerleave can fire when the finger slides off-stage; with
+    // setPointerCapture above we still get pointerup, so don't clobber the
+    // anchor here — just hide the loupe.
+    mbStage.addEventListener('pointerleave', () => hideLoupe());
   }
 
   // ===== DEMO MODE =====
